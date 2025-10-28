@@ -1,16 +1,16 @@
+let contextPath = '';
+let imageBaseUrl = '';
+
 document.addEventListener('DOMContentLoaded', function () {
     setTimeout(function() {
-        // Always initialize notices
         initializeNotices();
 
-        // Check if we have any clothes
         const clothItems = document.querySelectorAll('.cloth-item');
         const filterSection = document.querySelector('.filter-section');
 
-        // Only initialize these functions if we have clothes
         if (clothItems.length > 0 && filterSection) {
             initializeStaggeredAnimations();
-            initializeColorFiltering();
+            initializeHybridColorFiltering();
             initializeClothTypeFiltering();
             initializeDeleteFunctionality();
             initializeScrollButtons();
@@ -19,6 +19,14 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }, 100);
 });
+
+function setContextPath(path) {
+    contextPath = path;
+}
+
+function setImageBaseUrl(url) {
+    imageBaseUrl = url;
+}
 
 function initializeStaggeredAnimations() {
     const clothItems = document.querySelectorAll('.cloth-item');
@@ -67,30 +75,51 @@ function initializeParallaxEffects() {
     window.addEventListener('scroll', requestTick, { passive: true });
 }
 
-// Global filter state
 let globalFilterState = {
-    selectedMainColorId: null,
-    selectedSubColorId: null,
+    selectedColorId: null,
     activeTypeIds: {
         upper: [],
         lower: []
     }
 };
 
-function initializeColorFiltering() {
-    const mainColorCircles = document.querySelectorAll('.main-color');
-    const subColorCircles = document.querySelectorAll('.sub-color');
+// Debounce utility function
+let debounceTimer = null;
+function debounce(func, delay = 300) {
+    return function(...args) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => func.apply(this, args), delay);
+    };
+}
+
+function initializeHybridColorFiltering() {
+    const colorCircles = document.querySelectorAll('.color-circle');
     const clothItems = document.querySelectorAll('.cloth-item');
 
-    if (mainColorCircles.length === 0) {
+    if (colorCircles.length === 0) {
         return;
     }
 
-    mainColorCircles.forEach((circle) => {
-        circle.addEventListener('click', function(e) {
+    const usedColorIds = new Set();
+    clothItems.forEach(item => {
+        const dominantColorId = item.getAttribute('data-dominant-color-id');
+        if (dominantColorId && dominantColorId !== '') {
+            usedColorIds.add(dominantColorId);
+        }
+    });
+
+    colorCircles.forEach((circle) => {
+        const colorId = circle.getAttribute('data-color-id');
+
+        if (!usedColorIds.has(colorId)) {
+            circle.style.display = 'none';
+            return;
+        }
+
+        circle.addEventListener('click', async function(e) {
             e.preventDefault();
             e.stopPropagation();
-            handleMainColorClick(this);
+            await handleHybridColorClick(this);
         });
 
         circle.addEventListener('mouseenter', function() {
@@ -101,186 +130,267 @@ function initializeColorFiltering() {
             this.style.opacity = '1';
         });
     });
-
-    subColorCircles.forEach((circle) => {
-        circle.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            handleSubColorClick(this);
-        });
-
-        circle.addEventListener('mouseenter', function() {
-            if (this.style.display !== 'none') {
-                this.style.opacity = '0.8';
-            }
-        });
-
-        circle.addEventListener('mouseleave', function() {
-            this.style.opacity = '1';
-        });
-    });
-
-    function handleMainColorClick(element) {
-        const mainColorId = element.getAttribute('data-main-color-id');
-
-        if (globalFilterState.selectedMainColorId === mainColorId) {
-            globalFilterState.selectedMainColorId = null;
-            element.classList.remove('selected');
-            hideSubColors();
-            applyAllFilters();
-        } else {
-            clearMainColorSelection();
-            globalFilterState.selectedMainColorId = mainColorId;
-            globalFilterState.selectedSubColorId = null;
-            element.classList.add('selected');
-            showSubColors(mainColorId);
-            applyAllFilters();
-        }
-    }
-
-    function handleSubColorClick(element) {
-        const subColorId = element.getAttribute('data-sub-color-id');
-
-        if (globalFilterState.selectedSubColorId === subColorId) {
-            globalFilterState.selectedSubColorId = null;
-            element.classList.remove('selected');
-            applyAllFilters();
-        } else {
-            clearSubColorSelection();
-            globalFilterState.selectedSubColorId = subColorId;
-            element.classList.add('selected');
-            applyAllFilters();
-        }
-    }
-
-    function clearMainColorSelection() {
-        mainColorCircles.forEach(circle => {
-            circle.classList.remove('selected');
-        });
-        clearSubColorSelection();
-        hideSubColors();
-    }
-
-    function clearSubColorSelection() {
-        subColorCircles.forEach(circle => {
-            circle.classList.remove('selected');
-        });
-    }
-
-    function showSubColors(mainColorId) {
-        hideSubColors();
-        subColorCircles.forEach(circle => {
-            const circleMainColorId = circle.getAttribute('data-main-color-id');
-            if (circleMainColorId === mainColorId) {
-                circle.style.display = 'block';
-                circle.style.visibility = 'visible';
-                circle.style.pointerEvents = 'auto';
-            }
-        });
-    }
-
-    function hideSubColors() {
-        subColorCircles.forEach(circle => {
-            circle.style.display = 'none';
-            circle.style.visibility = 'hidden';
-            circle.style.pointerEvents = 'none';
-            circle.classList.remove('selected');
-        });
-    }
-
-    // Remove old individual filter functions - they're replaced by applyAllFilters
 }
 
-// Unified filtering function that combines color and type filters
-function applyAllFilters() {
-    const clothItems = document.querySelectorAll('.cloth-item');
-    let totalVisibleCount = 0;
+async function handleHybridColorClick(element) {
+    const colorId = element.getAttribute('data-color-id');
 
-    // Filter items in each category separately
-    ['upper', 'lower'].forEach(categoryGroup => {
-        const categorySection = document.querySelector(`[data-category-group="${categoryGroup}"]`);
-        if (!categorySection) return;
+    if (globalFilterState.selectedColorId === colorId) {
+        globalFilterState.selectedColorId = null;
+        element.classList.remove('selected');
+    } else {
+        document.querySelectorAll('.color-circle.selected').forEach(circle => {
+            circle.classList.remove('selected');
+        });
+        globalFilterState.selectedColorId = colorId;
+        element.classList.add('selected');
+    }
 
-        const clothesRow = categorySection.querySelector('.clothes-row');
-        if (!clothesRow) return;
+    // Call fetch directly - debounce not needed for single click
+    await fetchFilteredClothes();
+}
 
-        const itemsInCategory = clothesRow.querySelectorAll('.cloth-item');
-        let visibleInCategory = 0;
+async function fetchFilteredClothes() {
+    try {
+        showLoadingIndicator();
 
-        // Track which type IDs have items matching the color filter
-        const availableTypeIds = new Set();
+        const params = new URLSearchParams();
 
-        itemsInCategory.forEach(item => {
-            let shouldShow = true;
+        // Add color filter
+        if (globalFilterState.selectedColorId) {
+            params.append('colorId', globalFilterState.selectedColorId);
+        }
 
-            // Apply color filter
-            if (globalFilterState.selectedMainColorId) {
-                const itemMainColorId = item.getAttribute('data-main-color-id');
+        // Add type filters for both upper and lower categories
+        const allActiveTypeIds = [
+            ...globalFilterState.activeTypeIds.upper,
+            ...globalFilterState.activeTypeIds.lower
+        ];
 
-                if (globalFilterState.selectedSubColorId) {
-                    const itemSubColorId = item.getAttribute('data-sub-color-id');
-                    shouldShow = itemSubColorId === globalFilterState.selectedSubColorId;
+        if (allActiveTypeIds.length > 0) {
+            allActiveTypeIds.forEach(typeId => {
+                params.append('typeIds', typeId);
+            });
+        }
+
+        const response = await fetch(`${contextPath}/api/cloth/filter?${params}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to filter clothes');
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            updateClothesDisplay(data.clothes);
+        } else {
+            showErrorMessage(data.message || 'เกิดข้อผิดพลาดในการกรองข้อมูล');
+        }
+
+        hideLoadingIndicator();
+
+    } catch (error) {
+        console.error('Error filtering clothes:', error);
+        hideLoadingIndicator();
+        showErrorMessage('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+    }
+}
+
+function updateClothesDisplay(clothes) {
+    const upperClothes = clothes.filter(c =>
+        c.typeName === 'เสื้อ' || c.typeName === 'เสื้อคลุม'
+    );
+    const lowerClothes = clothes.filter(c =>
+        c.typeName === 'กางเกง' || c.typeName === 'กระโปรง'
+    );
+
+    updateCategorySection('upper', upperClothes);
+    updateCategorySection('lower', lowerClothes);
+
+    if (clothes.length === 0) {
+        toggleEmptyState(true);
+    } else {
+        toggleEmptyState(false);
+    }
+
+    updateTypeButtonsVisibility(upperClothes, lowerClothes);
+}
+
+function updateCategorySection(category, clothes) {
+    const clothesRow = document.querySelector(
+        `[data-category-group="${category}"] .clothes-row`
+    );
+
+    if (!clothesRow) return;
+
+    clothesRow.innerHTML = '';
+
+    clothes.forEach(cloth => {
+        const clothItem = createClothItemElement(cloth);
+        clothesRow.appendChild(clothItem);
+    });
+}
+
+function createClothItemElement(cloth) {
+    const div = document.createElement('div');
+    div.className = 'cloth-item';
+    div.setAttribute('data-cloth-id', cloth.clothId);
+    div.setAttribute('data-clothing-type-id', cloth.typeId);
+    div.setAttribute('data-dominant-color-id', cloth.dominantColorId || '');
+    div.setAttribute('data-color-name', cloth.dominantColorName || '');
+
+    div.innerHTML = `
+        <div class="cloth-image">
+            <button class="delete-btn" data-cloth-id="${cloth.clothId}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                    <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H9.5a1 1 0 0 1 1 1v1H14a1 1 0 0 1 1 1v1zM2.5 3V2h11v1h-11z"/>
+                </svg>
+            </button>
+            <img src="${cloth.clothImage}" alt="${cloth.typeName}" />
+        </div>
+    `;
+
+    return div;
+}
+
+function updateTypeButtonsVisibility(upperClothes, lowerClothes) {
+    const upperSection = document.querySelector('[data-category-group="upper"]');
+    const lowerSection = document.querySelector('[data-category-group="lower"]');
+
+    // Get available type IDs from server response
+    const upperTypeIds = new Set(upperClothes.map(c => c.typeId.toString()));
+    const lowerTypeIds = new Set(lowerClothes.map(c => c.typeId.toString()));
+
+    if (upperSection) {
+        const upperButtons = upperSection.querySelectorAll('.cloth-type-btn');
+        upperButtons.forEach(btn => {
+            const typeId = btn.getAttribute('data-type-id');
+
+            // If no color filter is active, show all buttons
+            if (!globalFilterState.selectedColorId) {
+                btn.style.display = 'inline-block';
+                btn.style.opacity = '1';
+                btn.disabled = false;
+            } else {
+                // Color filter is active - only show types that have items with that color
+                if (upperTypeIds.has(typeId)) {
+                    btn.style.display = 'inline-block';
+                    btn.style.opacity = '1';
+                    btn.disabled = false;
                 } else {
-                    shouldShow = itemMainColorId === globalFilterState.selectedMainColorId;
+                    // Hide buttons for types that don't have items with the selected color
+                    btn.style.display = 'none';
                 }
-            }
-
-            // Track available types for color-filtered items
-            if (shouldShow) {
-                const clothTypeId = item.getAttribute('data-cloth-type-id');
-                availableTypeIds.add(clothTypeId);
-            }
-
-            // Apply type filter (only if color filter passes or no color filter is set)
-            if (shouldShow && globalFilterState.activeTypeIds[categoryGroup].length > 0) {
-                const clothTypeId = item.getAttribute('data-cloth-type-id');
-                shouldShow = globalFilterState.activeTypeIds[categoryGroup].includes(clothTypeId);
-            }
-
-            if (shouldShow) {
-                item.style.display = 'block';
-                visibleInCategory++;
-                totalVisibleCount++;
-            } else {
-                item.style.display = 'none';
             }
         });
+    }
 
-        // Hide/show cloth type buttons based on available types
-        updateClothTypeButtons(categorySection, availableTypeIds);
-    });
+    if (lowerSection) {
+        const lowerButtons = lowerSection.querySelectorAll('.cloth-type-btn');
+        lowerButtons.forEach(btn => {
+            const typeId = btn.getAttribute('data-type-id');
 
-    toggleEmptyState(totalVisibleCount === 0);
-}
-
-// Function to update cloth type button visibility based on available types
-function updateClothTypeButtons(categorySection, availableTypeIds) {
-    const clothTypeButtons = categorySection.querySelectorAll('.cloth-type-btn');
-
-    clothTypeButtons.forEach(button => {
-        const typeId = button.getAttribute('data-type-id');
-
-        // If color filter is active, only show buttons for types that have items with that color
-        if (globalFilterState.selectedMainColorId || globalFilterState.selectedSubColorId) {
-            if (availableTypeIds.has(typeId)) {
-                button.style.display = 'inline-block';
+            // If no color filter is active, show all buttons
+            if (!globalFilterState.selectedColorId) {
+                btn.style.display = 'inline-block';
+                btn.style.opacity = '1';
+                btn.disabled = false;
             } else {
-                button.style.display = 'none';
-                // If the hidden button was active, deactivate it
-                if (button.classList.contains('active')) {
-                    button.classList.remove('active');
-                    const categoryGroup = categorySection.getAttribute('data-category-group');
-                    const index = globalFilterState.activeTypeIds[categoryGroup].indexOf(typeId);
-                    if (index > -1) {
-                        globalFilterState.activeTypeIds[categoryGroup].splice(index, 1);
-                    }
+                // Color filter is active - only show types that have items with that color
+                if (lowerTypeIds.has(typeId)) {
+                    btn.style.display = 'inline-block';
+                    btn.style.opacity = '1';
+                    btn.disabled = false;
+                } else {
+                    // Hide buttons for types that don't have items with the selected color
+                    btn.style.display = 'none';
                 }
             }
-        } else {
-            // No color filter active, show all buttons
-            button.style.display = 'inline-block';
+        });
+    }
+
+    initializeDeleteFunctionality();
+    initializeImageModal();
+}
+
+let loadingCount = 0; // Track multiple simultaneous loading operations
+
+function showLoadingIndicator() {
+    loadingCount++;
+
+    let indicator = document.getElementById('loading-indicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'loading-indicator';
+        indicator.className = 'loading-indicator';
+        indicator.innerHTML = `
+            <div class="loading-backdrop"></div>
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">กำลังกรองข้อมูล...</p>
+            </div>
+        `;
+        document.body.appendChild(indicator);
+
+        // Add smooth fade-in after a small delay to avoid flicker on fast responses
+        setTimeout(() => {
+            if (indicator && loadingCount > 0) {
+                indicator.classList.add('show');
+            }
+        }, 100);
+    } else {
+        indicator.classList.add('show');
+    }
+}
+
+function hideLoadingIndicator() {
+    loadingCount = Math.max(0, loadingCount - 1);
+
+    if (loadingCount === 0) {
+        const indicator = document.getElementById('loading-indicator');
+        if (indicator) {
+            indicator.classList.remove('show');
+            setTimeout(() => {
+                if (indicator.parentNode && loadingCount === 0) {
+                    indicator.remove();
+                }
+            }, 300);
         }
-    });
+    }
+}
+
+function showErrorMessage(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'notice notice-error';
+    errorDiv.innerHTML = `
+        <div class="notice-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+        </div>
+        <div class="notice-content">
+            <h4 class="notice-title">เกิดข้อผิดพลาด!</h4>
+            <p class="notice-message">${message}</p>
+        </div>
+    `;
+
+    const content = document.querySelector('.content');
+    if (content) {
+        content.insertBefore(errorDiv, content.firstChild);
+        setTimeout(() => errorDiv.classList.add('show'), 100);
+        setTimeout(() => {
+            errorDiv.classList.remove('show');
+            setTimeout(() => errorDiv.remove(), 300);
+        }, 5000);
+    }
 }
 
 function toggleEmptyState(show) {
@@ -300,36 +410,11 @@ function toggleEmptyState(show) {
     }
 }
 
-// Function to reset all filters
-function resetAllFilters() {
-    // Reset global state
-    globalFilterState.selectedMainColorId = null;
-    globalFilterState.selectedSubColorId = null;
-    globalFilterState.activeTypeIds.upper = [];
-    globalFilterState.activeTypeIds.lower = [];
-
-    // Clear color selections
-    document.querySelectorAll('.main-color.selected').forEach(circle => {
-        circle.classList.remove('selected');
-    });
-    document.querySelectorAll('.sub-color.selected').forEach(circle => {
-        circle.classList.remove('selected');
-    });
-    document.querySelectorAll('.sub-color').forEach(circle => {
-        circle.style.display = 'none';
-    });
-
-    // Clear type selections
-    document.querySelectorAll('.cloth-type-btn.active').forEach(button => {
-        button.classList.remove('active');
-    });
-
-    // Show all clothes
-    applyAllFilters();
-}
-
 function initializeClothTypeFiltering() {
     const clothTypeButtons = document.querySelectorAll('.cloth-type-btn');
+
+    // Create debounced version of fetchFilteredClothes
+    const debouncedFetch = debounce(fetchFilteredClothes, 300);
 
     clothTypeButtons.forEach(button => {
         button.addEventListener('click', function () {
@@ -338,26 +423,26 @@ function initializeClothTypeFiltering() {
 
             this.classList.toggle('active');
 
-            // Update global filter state
             const isActive = this.classList.contains('active');
             if (isActive) {
-                // Add to active types
                 if (!globalFilterState.activeTypeIds[categoryGroup].includes(typeId)) {
                     globalFilterState.activeTypeIds[categoryGroup].push(typeId);
                 }
             } else {
-                // Remove from active types
                 const index = globalFilterState.activeTypeIds[categoryGroup].indexOf(typeId);
                 if (index > -1) {
                     globalFilterState.activeTypeIds[categoryGroup].splice(index, 1);
                 }
             }
 
-            // Apply all filters
-            applyAllFilters();
+            // Use hybrid approach: fetch from server instead of client-side filtering
+            debouncedFetch();
         });
     });
 }
+
+// This function has been removed as filtering is now done on the server-side
+// Type filtering is handled by fetchFilteredClothes() which sends requests to the backend
 
 function initializeDeleteFunctionality() {
     const deleteButtons = document.querySelectorAll('.delete-btn');
@@ -369,7 +454,6 @@ function initializeDeleteFunctionality() {
 
     let currentClothId = null;
 
-    // Delete button click handlers
     deleteButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -380,7 +464,6 @@ function initializeDeleteFunctionality() {
         });
     });
 
-    // Cancel button handler
     if (cancelButton) {
         cancelButton.addEventListener('click', function() {
             hideConfirmationPopup();
@@ -388,7 +471,6 @@ function initializeDeleteFunctionality() {
         });
     }
 
-    // Confirm button handler
     if (confirmButton) {
         confirmButton.addEventListener('click', function() {
             if (currentClothId && deleteForm && deleteClothIdInput) {
@@ -400,7 +482,6 @@ function initializeDeleteFunctionality() {
         });
     }
 
-    // Close popup when clicking outside
     if (confirmationPopup) {
         confirmationPopup.addEventListener('click', function(e) {
             if (e.target === confirmationPopup) {
@@ -410,7 +491,6 @@ function initializeDeleteFunctionality() {
         });
     }
 
-    // ESC key to close popup
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && confirmationPopup && confirmationPopup.classList.contains('show')) {
             hideConfirmationPopup();
@@ -421,11 +501,9 @@ function initializeDeleteFunctionality() {
     function showConfirmationPopup() {
         if (confirmationPopup) {
             confirmationPopup.style.display = 'flex';
-            // Force reflow for animation
             confirmationPopup.offsetHeight;
             confirmationPopup.classList.add('show');
 
-            // Focus on cancel button for accessibility
             if (cancelButton) {
                 setTimeout(() => cancelButton.focus(), 100);
             }
@@ -442,22 +520,18 @@ function initializeDeleteFunctionality() {
     }
 }
 
-
 function initializeNotices() {
     const notices = document.querySelectorAll('.notice');
 
     notices.forEach(notice => {
-        // Show the notice with animation
         setTimeout(() => {
             notice.classList.add('show');
         }, 100);
 
-        // Add click to dismiss
         notice.addEventListener('click', function() {
             dismissNotice(this);
         });
 
-        // Add dismiss button
         const dismissBtn = document.createElement('button');
         dismissBtn.innerHTML = '×';
         dismissBtn.className = 'notice-dismiss';
@@ -523,16 +597,13 @@ function initializeScrollButtons() {
         const categorySection = clothesRow.closest('.category-section');
         const clothItems = clothesRow.querySelectorAll('.cloth-item');
 
-        // Only add scroll buttons if there are items and potential overflow
         if (clothItems.length === 0) {
             return;
         }
 
-        // Create scroll buttons container
         const scrollButtonsContainer = document.createElement('div');
         scrollButtonsContainer.className = 'scroll-buttons-container';
 
-        // Create left scroll button
         const leftButton = document.createElement('button');
         leftButton.className = 'scroll-btn scroll-btn-left';
         leftButton.innerHTML = `
@@ -541,7 +612,6 @@ function initializeScrollButtons() {
             </svg>
         `;
 
-        // Create right scroll button
         const rightButton = document.createElement('button');
         rightButton.className = 'scroll-btn scroll-btn-right';
         rightButton.innerHTML = `
@@ -553,10 +623,8 @@ function initializeScrollButtons() {
         scrollButtonsContainer.appendChild(leftButton);
         scrollButtonsContainer.appendChild(rightButton);
 
-        // Insert scroll buttons before clothes row
         clothesRow.parentNode.insertBefore(scrollButtonsContainer, clothesRow);
 
-        // Add scroll functionality
         leftButton.addEventListener('click', () => {
             clothesRow.scrollBy({ left: -200, behavior: 'smooth' });
         });
@@ -565,7 +633,6 @@ function initializeScrollButtons() {
             clothesRow.scrollBy({ left: 200, behavior: 'smooth' });
         });
 
-        // Update button visibility based on scroll position
         function updateScrollButtons() {
             const scrollLeft = clothesRow.scrollLeft;
             const maxScroll = clothesRow.scrollWidth - clothesRow.clientWidth;
@@ -576,11 +643,9 @@ function initializeScrollButtons() {
             leftButton.disabled = scrollLeft <= 0;
             rightButton.disabled = scrollLeft >= maxScroll;
 
-            // Update scroll indicators
             updateScrollIndicators();
         }
 
-        // Add scroll progress indicator
         function updateScrollIndicators() {
             const scrollLeft = clothesRow.scrollLeft;
             const maxScroll = clothesRow.scrollWidth - clothesRow.clientWidth;
@@ -588,13 +653,11 @@ function initializeScrollButtons() {
             if (maxScroll > 0) {
                 const scrollPercentage = (scrollLeft / maxScroll) * 100;
 
-                // Update progress bar if it exists
                 const progressBar = categorySection.querySelector('.scroll-progress');
                 if (progressBar) {
                     progressBar.style.width = `${scrollPercentage}%`;
                 }
 
-                // Update fade indicators
                 const fadeLeft = categorySection.querySelector('.fade-left');
                 const fadeRight = categorySection.querySelector('.fade-right');
 
@@ -607,11 +670,9 @@ function initializeScrollButtons() {
             }
         }
 
-        // Create scroll progress bar (only if there are items to scroll)
         const itemCount = clothItems.length;
 
         if (itemCount === 0) {
-            // Show empty state for this category
             const categoryGroup = categorySection.getAttribute('data-category-group');
             const categoryName = categoryGroup === 'upper' ? 'เสื้อผ้าส่วนบน' : 'เสื้อผ้าส่วนล่าง';
             const emptyIcon = categoryGroup === 'upper' ? '👕' : '👖';
@@ -634,24 +695,20 @@ function initializeScrollButtons() {
                 <div class="scroll-progress"></div>
             `;
 
-            // Create items count indicator
             const itemsCount = document.createElement('div');
             itemsCount.className = 'items-count';
             itemsCount.textContent = `${itemCount} ชิ้น`;
 
-            // Create fade indicators
             const fadeLeft = document.createElement('div');
             fadeLeft.className = 'fade-left';
             const fadeRight = document.createElement('div');
             fadeRight.className = 'fade-right';
 
-            // Insert elements
             clothesRow.parentNode.insertBefore(progressContainer, clothesRow);
             categorySection.appendChild(itemsCount);
             categorySection.appendChild(fadeLeft);
             categorySection.appendChild(fadeRight);
 
-            // Show progress bar only if content overflows
             const hasOverflow = clothesRow.scrollWidth > clothesRow.clientWidth;
             if (!hasOverflow) {
                 progressContainer.style.display = 'none';
@@ -660,7 +717,6 @@ function initializeScrollButtons() {
 
         clothesRow.addEventListener('scroll', updateScrollButtons);
 
-        // Add touch support for mobile
         let isDown = false;
         let startX;
         let scrollLeftStart;
@@ -687,7 +743,6 @@ function initializeScrollButtons() {
             clothesRow.scrollLeft = scrollLeftStart - walk;
         });
 
-        // Enhance scroll buttons with keyboard support
         leftButton.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -702,7 +757,6 @@ function initializeScrollButtons() {
             }
         });
 
-        // Initialize scroll functionality
         setTimeout(() => {
             updateScrollButtons();
             updateScrollIndicators();
@@ -717,7 +771,6 @@ function initializeImageModal() {
 
     if (!imageModal || !modalImage) return;
 
-    // Add click event to all cloth images
     clothImages.forEach(img => {
         img.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -726,12 +779,10 @@ function initializeImageModal() {
         });
     });
 
-    // Close modal when clicking on it
     imageModal.addEventListener('click', function() {
         this.classList.remove('show');
     });
 
-    // Close modal with ESC key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && imageModal.classList.contains('show')) {
             imageModal.classList.remove('show');

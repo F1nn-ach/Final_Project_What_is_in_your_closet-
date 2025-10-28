@@ -17,7 +17,7 @@
     <div class="content">
       <div class="page-header">
         <h1 class="page-title">รายการเสื้อผ้าของคุณ</h1>
-        <a href="${pageContext.request.contextPath}/add-item" class="add-btn">
+        <a href="${pageContext.request.contextPath}/cloth/add" class="add-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -66,7 +66,7 @@
               <div class="empty-state-icon">👔</div>
               <h3 class="empty-title">ยังไม่มีเสื้อผ้าในตู้ของคุณ</h3>
               <p class="empty-desc">เริ่มต้นเพิ่มเสื้อผ้าในตู้ของคุณเพื่อค้นหาสีที่เหมาะกับคุณ</p>
-              <a href="${pageContext.request.contextPath}/add-item" class="add-btn">
+              <a href="${pageContext.request.contextPath}/cloth/add" class="add-btn">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -81,21 +81,11 @@
       <div class="filter-section">
         <h2 class="filter-title">กรองตามสี</h2>
         <div class="color-palette">
-          <c:forEach var="mainColor" items="${mainColorCategories}">
-            <div class="color-circle main-color"
-                 data-main-color-id="${mainColor.mainColorCategory}"
-                 style="background-color: ${mainColor.mainHex};"
-                 title="${mainColor.mainColorName}">
-            </div>
-          </c:forEach>
-        </div>
-        <div class="sub-color-palette">
-          <c:forEach var="subColor" items="${subColorCategories}">
-            <div class="color-circle sub-color"
-                 data-sub-color-id="${subColor.subColorCategoryId}"
-                 data-main-color-id="${subColor.mainColorCategory.mainColorCategory}"
-                 style="background-color: ${subColor.subHex}; display: none;"
-                 title="${subColor.subColorName}">
+          <c:forEach var="color" items="${colorCategories}">
+            <div class="color-circle"
+                 data-color-id="${color.colorCategoryId}"
+                 style="background-color: ${color.colorCategoryHex};"
+                 title="${color.colorCategoryName}">
             </div>
           </c:forEach>
         </div>
@@ -106,29 +96,28 @@
         <div class="category-section" data-category-group="upper">
           <h2 class="category-title">👕 เสื้อผ้าส่วนบน (Tops)</h2>
           <div class="cloth-type-buttons" id="upper-cloth-type-buttons">
-            <c:forEach var="clothType" items="${clothTypes}">
-              <c:if test="${clothType.typeName == 'เสื้อ' || clothType.typeName == 'เสื้อคลุม'}">
-                <button class="cloth-type-btn" data-type-id="${clothType.clothTypeId}">${clothType.typeName}</button>
+            <c:forEach var="clothingType" items="${clothingTypes}">
+              <c:if test="${clothingType.clothingTypeName == 'เสื้อ' || clothingType.clothingTypeName == 'เสื้อคลุม'}">
+                <button class="cloth-type-btn" data-type-id="${clothingType.clothingTypeId}">${clothingType.clothingTypeName}</button>
               </c:if>
             </c:forEach>
           </div>
           <div class="clothes-row" id="upper-clothes-row">
             <c:forEach var="cloth" items="${clothes}">
-              <c:if test="${cloth.clothType.typeName == 'เสื้อ' || cloth.clothType.typeName == 'เสื้อคลุม'}">
+              <c:if test="${cloth.clothingType.clothingTypeName == 'เสื้อ' || cloth.clothingType.clothingTypeName == 'เสื้อคลุม'}">
                 <div class="cloth-item"
-                     data-cloth-id="${cloth.clothId}"
-                     data-cloth-type-id="${cloth.clothType.clothTypeId}"
-                     data-main-color-id="${cloth.subColorCategory != null ? cloth.subColorCategory.mainColorCategory.mainColorCategory : ''}"
-                     data-sub-color-id="${cloth.subColorCategory != null ? cloth.subColorCategory.subColorCategoryId : ''}"
-                     data-color-hex="${cloth.colorHex != null ? cloth.colorHex : '[]'}">
+                     data-cloth-id="${cloth.clothingId}"
+                     data-clothing-type-id="${cloth.clothingType.clothingTypeId}"
+                     data-dominant-color-id="${cloth.dominantColor != null ? cloth.dominantColor.colorCategoryId : ''}"
+                     data-color-name="${cloth.dominantColor != null ? cloth.dominantColor.colorCategoryName : ''}">
                   <div class="cloth-image">
-                    <button class="delete-btn" data-cloth-id="${cloth.clothId}">
+                    <button class="delete-btn" data-cloth-id="${cloth.clothingId}">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
                         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
                         <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H9.5a1 1 0 0 1 1 1v1H14a1 1 0 0 1 1 1v1zM2.5 3V2h11v1h-11z"/>
                       </svg>
                     </button>
-                    <img src="${imageBaseUrl}${cloth.user.username}/${cloth.clothImage}" alt="${cloth.clothType.typeName}" />
+                    <img src="${imageBaseUrl}${cloth.user.username}/${cloth.clothingImage}" alt="${cloth.clothingType.clothingTypeName}" />
                   </div>
                 </div>
               </c:if>
@@ -139,29 +128,28 @@
         <div class="category-section" data-category-group="lower">
           <h2 class="category-title">👖 เสื้อผ้าส่วนล่าง (Bottoms)</h2>
           <div class="cloth-type-buttons" id="lower-cloth-type-buttons">
-            <c:forEach var="clothType" items="${clothTypes}">
-              <c:if test="${clothType.typeName == 'กางเกง' || clothType.typeName == 'กระโปรง'}">
-                <button class="cloth-type-btn" data-type-id="${clothType.clothTypeId}">${clothType.typeName}</button>
+            <c:forEach var="clothingType" items="${clothingTypes}">
+              <c:if test="${clothingType.clothingTypeName == 'กางเกง' || clothingType.clothingTypeName == 'กระโปรง'}">
+                <button class="cloth-type-btn" data-type-id="${clothingType.clothingTypeId}">${clothingType.clothingTypeName}</button>
               </c:if>
             </c:forEach>
           </div>
           <div class="clothes-row" id="lower-clothes-row">
             <c:forEach var="cloth" items="${clothes}">
-              <c:if test="${cloth.clothType.typeName == 'กางเกง' || cloth.clothType.typeName == 'กระโปรง'}">
+              <c:if test="${cloth.clothingType.clothingTypeName == 'กางเกง' || cloth.clothingType.clothingTypeName == 'กระโปรง'}">
                 <div class="cloth-item"
-                     data-cloth-id="${cloth.clothId}"
-                     data-cloth-type-id="${cloth.clothType.clothTypeId}"
-                     data-main-color-id="${cloth.subColorCategory != null ? cloth.subColorCategory.mainColorCategory.mainColorCategory : ''}"
-                     data-sub-color-id="${cloth.subColorCategory != null ? cloth.subColorCategory.subColorCategoryId : ''}"
-                     data-color-hex="${cloth.colorHex != null ? cloth.colorHex : '[]'}">
+                     data-cloth-id="${cloth.clothingId}"
+                     data-clothing-type-id="${cloth.clothingType.clothingTypeId}"
+                     data-dominant-color-id="${cloth.dominantColor != null ? cloth.dominantColor.colorCategoryId : ''}"
+                     data-color-name="${cloth.dominantColor != null ? cloth.dominantColor.colorCategoryName : ''}">
                   <div class="cloth-image">
-                    <button class="delete-btn" data-cloth-id="${cloth.clothId}">
+                    <button class="delete-btn" data-cloth-id="${cloth.clothingId}">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
                         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
                         <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H9.5a1 1 0 0 1 1 1v1H14a1 1 0 0 1 1 1v1zM2.5 3V2h11v1h-11z"/>
                       </svg>
                     </button>
-                    <img src="${imageBaseUrl}${cloth.user.username}/${cloth.clothImage}" alt="${cloth.clothType.typeName}" />
+                    <img src="${imageBaseUrl}${cloth.user.username}/${cloth.clothingImage}" alt="${cloth.clothingType.clothingTypeName}" />
                   </div>
                 </div>
               </c:if>
@@ -172,7 +160,7 @@
         <div class="empty-state" style="display: none;">
           <h3 class="empty-title">ไม่พบเสื้อผ้าที่ตรงกับเงื่อนไขที่เลือก</h3>
           <p class="empty-desc">ลองเปลี่ยนเงื่อนไขการกรองหรือเพิ่มเสื้อผ้าใหม่</p>
-          <a href="${pageContext.request.contextPath}/add-item" class="add-btn">
+          <a href="${pageContext.request.contextPath}/cloth/add" class="add-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -216,11 +204,16 @@
   </div>
 
   <!-- Hidden form for delete operations -->
-  <form id="deleteForm" action="${pageContext.request.contextPath}/delete-item" method="post" style="display: none;">
+  <form id="deleteForm" action="${pageContext.request.contextPath}/cloth/delete" method="post" style="display: none;">
     <input type="hidden" id="deleteClothId" name="clothId" value="">
   </form>
 
   <%@ include file="includes/footer.jsp" %>
+  <script>
+    // Set context path and image base URL for JavaScript
+    contextPath = '${pageContext.request.contextPath}';
+    imageBaseUrl = '${imageBaseUrl}';
+  </script>
   <script src="${pageContext.request.contextPath}/static/js/list-clothes.js"></script>
 </body>
 </html>

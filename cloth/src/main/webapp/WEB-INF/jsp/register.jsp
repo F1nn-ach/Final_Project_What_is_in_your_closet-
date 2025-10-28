@@ -20,7 +20,7 @@
         <div class="card-subtitle">สมัครสมาชิกเพื่อค้นหาสีมงคลประจำวันของคุณ</div>
       </div>
 
-      <form action="${pageContext.request.contextPath}/registration" method="post" id="registerForm">
+      <form action="${pageContext.request.contextPath}/user/register" method="post" id="registerForm">
         <div class="form-group">
           <label for="username">ชื่อผู้ใช้</label>
           <input type="text" id="username" name="username" placeholder="กรอกชื่อผู้ใช้ที่ต้องการ">

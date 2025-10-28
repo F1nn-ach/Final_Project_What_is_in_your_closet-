@@ -7,60 +7,240 @@ let initialMatrixData = {};
 let currentEditingCell = null;
 let selectedColors = [];
 let selectedLuckyTypes = [];
+let isReadOnly = false;
+let actualCurrentYear;
 
 let days = [];
 let luckyTypes = [];
 let allColors = [];
-let allLuckyColors = [];
 
 function initializeData(data) {
   currentYear = data.currentYear;
+  actualCurrentYear = data.currentYear;
   days = data.days;
   luckyTypes = data.luckyTypes;
-  allColors = data.allColors;
-  allLuckyColors = data.allLuckyColors;
+  allColors = sortColorsByHue(data.allColors);
+  updateReadOnlyMode();
+  renderColorGrid();
 }
 
-function loadAstrologerData() {
+// Render color grid in modal with sorted colors
+function renderColorGrid() {
+  const colorGrid = document.getElementById('color-grid');
+  if (!colorGrid) return;
+
+  let html = '';
+  allColors.forEach(color => {
+    html += '<div class="color-card-modal" data-id="' + color.id + '" data-name="' + color.name + '" data-hex="' + color.hex + '">';
+    html += '<div class="color-preview-modal" style="background: ' + color.hex + ';"></div>';
+    html += '<div class="color-name-modal">' + color.name + '</div>';
+    html += '</div>';
+  });
+
+  colorGrid.innerHTML = html;
+}
+
+// Function to convert hex to HSL for sorting
+function hexToHSL(hex) {
+  // Remove # if present
+  hex = hex.replace('#', '');
+
+  // Convert hex to RGB
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
+
+  if (max === min) {
+    h = s = 0; // achromatic (gray)
+  } else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+
+  return {
+    h: h * 360, // 0-360
+    s: s * 100, // 0-100
+    l: l * 100  // 0-100
+  };
+}
+
+// Sort colors by hue to create a beautiful rainbow gradient
+function sortColorsByHue(colors) {
+  return colors.slice().sort((a, b) => {
+    const hslA = hexToHSL(a.hex);
+    const hslB = hexToHSL(b.hex);
+
+    // First sort by hue (color spectrum)
+    if (Math.abs(hslA.h - hslB.h) > 1) {
+      return hslA.h - hslB.h;
+    }
+
+    // If hue is similar, sort by saturation (vibrant colors first)
+    if (Math.abs(hslA.s - hslB.s) > 1) {
+      return hslB.s - hslA.s;
+    }
+
+    // If saturation is similar, sort by lightness (darker first)
+    return hslA.l - hslB.l;
+  });
+}
+
+async function loadAstrologerData() {
   if (!currentAstrologer) return;
 
   matrixData = {};
   initialMatrixData = {};
   selectedLuckyTypes = [];
 
-  const astrologerColors = allLuckyColors.filter(lc =>
-    lc.astrologerName === currentAstrologer && lc.year === currentYear
-  );
+  try {
+    const response = await fetch(
+      `${getContextPath()}/api/admin/lucky-color/search?astrologerName=${encodeURIComponent(currentAstrologer)}&year=${currentYear}`
+    );
 
-  astrologerColors.forEach(lc => {
-    const cellKey = lc.day + '-' + lc.typeId;
-    matrixData[cellKey] = [...lc.colors];
-    initialMatrixData[cellKey] = [...lc.colors];
-  });
+    if (!response.ok) {
+      console.error('Failed to load astrologer data');
+      return;
+    }
 
-  const typesWithData = [...new Set(astrologerColors.map(lc => lc.typeId))];
-  if (typesWithData.length > 0) {
-    selectedLuckyTypes = typesWithData;
+    const astrologerColors = await response.json();
+
+    astrologerColors.forEach(lc => {
+      const cellKey = lc.day + '-' + lc.typeId;
+      matrixData[cellKey] = [...lc.colors];
+      initialMatrixData[cellKey] = [...lc.colors];
+    });
+
+    const typesWithData = [...new Set(astrologerColors.map(lc => lc.typeId))];
+    if (typesWithData.length > 0) {
+      selectedLuckyTypes = typesWithData;
+    }
+
+    const hasSessionData = loadFromSessionStorage();
+    if (hasSessionData) {
+      showUnsavedDataNotification();
+    }
+  } catch (error) {
+    console.error('Error loading astrologer data:', error);
   }
 }
 
-// Year selector
+function showUnsavedDataNotification() {
+  const existingNotification = document.getElementById('unsaved-data-notification');
+  if (existingNotification) {
+    existingNotification.remove();
+  }
+
+  const headerBar = document.querySelector('.header-bar');
+  if (!headerBar) return;
+
+  const notification = document.createElement('div');
+  notification.id = 'unsaved-data-notification';
+  notification.style.cssText = `
+    background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+    border: 2px solid #ff9800;
+    border-radius: 8px;
+    padding: 12px 20px;
+    margin-bottom: 15px;
+    color: #e65100;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.2);
+  `;
+  notification.innerHTML = `
+    <span style="font-size: 1.3rem;">💾</span>
+    <span>พบข้อมูลที่ยังไม่ได้บันทึก - ข้อมูลถูกกู้คืนจากการแก้ไขครั้งก่อน</span>
+  `;
+
+  headerBar.insertBefore(notification, headerBar.firstChild);
+
+  setTimeout(() => {
+    if (notification && notification.parentNode) {
+      notification.style.transition = 'opacity 0.5s ease';
+      notification.style.opacity = '0';
+      setTimeout(() => {
+        if (notification && notification.parentNode) {
+          notification.remove();
+        }
+      }, 500);
+    }
+  }, 10000);
+}
+
+
+function updateReadOnlyMode() {
+  isReadOnly = (currentYear !== actualCurrentYear);
+  updateUIForReadOnlyMode();
+}
+
+function updateUIForReadOnlyMode() {
+  const submitBtn = document.getElementById('submit-all-btn');
+  const deleteBtn = document.getElementById('delete-astrologer-btn');
+  const clearBtn = document.getElementById('clear-form-btn');
+  const astrologerSelect = document.getElementById('astrologer-select');
+  const newAstrologerInput = document.getElementById('new-astrologer-input');
+  const headerBar = document.querySelector('.header-bar');
+
+  if (isReadOnly) {
+    if (submitBtn) submitBtn.style.display = 'none';
+    if (deleteBtn) deleteBtn.style.display = 'none';
+    if (clearBtn) clearBtn.style.display = 'none';
+
+    const newOption = astrologerSelect.querySelector('option[value="__new__"]');
+    if (newOption) newOption.disabled = true;
+
+    if (newAstrologerInput) newAstrologerInput.disabled = true;
+
+    let readOnlyBanner = document.getElementById('read-only-banner');
+    if (!readOnlyBanner) {
+      readOnlyBanner = document.createElement('div');
+      readOnlyBanner.id = 'read-only-banner';
+      readOnlyBanner.className = 'read-only-banner';
+      readOnlyBanner.innerHTML = '📖 โหมดดูข้อมูล - ปีที่เลือกไม่ใช่ปีปัจจุบัน (ไม่สามารถแก้ไขได้)';
+      headerBar.insertBefore(readOnlyBanner, headerBar.firstChild);
+    }
+  } else {
+    if (submitBtn) submitBtn.style.display = 'block';
+
+    const newOption = astrologerSelect.querySelector('option[value="__new__"]');
+    if (newOption) newOption.disabled = false;
+
+    if (newAstrologerInput) newAstrologerInput.disabled = false;
+
+    const readOnlyBanner = document.getElementById('read-only-banner');
+    if (readOnlyBanner) {
+      readOnlyBanner.remove();
+    }
+  }
+}
+
 function initYearSelector() {
-  document.getElementById('year-select').addEventListener('change', function () {
+  document.getElementById('year-select').addEventListener('change', async function () {
+    clearSessionStorage();
+
     currentYear = parseInt(this.value);
+    updateReadOnlyMode();
+
     if (currentAstrologer) {
-      // Clear current data first
       matrixData = {};
       initialMatrixData = {};
 
-      // Reload data for new year
-      loadAstrologerData();
+      await loadAstrologerData();
 
-      // Rebuild matrix with the loaded data
       if (selectedLuckyTypes.length > 0) {
         buildMatrixPreservingData(matrixData);
       } else {
-        // Show type selection again if no types selected
         showTypeSelection();
       }
     }
@@ -68,7 +248,9 @@ function initYearSelector() {
 }
 
 function initAstrologerSelector() {
-  document.getElementById('astrologer-select').addEventListener('change', function () {
+  document.getElementById('astrologer-select').addEventListener('change', async function () {
+    clearSessionStorage();
+
     const value = this.value;
     const selectedOption = this.options[this.selectedIndex];
     const newInput = document.getElementById('new-astrologer-input');
@@ -76,51 +258,62 @@ function initAstrologerSelector() {
     const deleteBtn = document.getElementById('delete-astrologer-btn');
     const clearBtn = document.getElementById('clear-form-btn');
 
+    if (value === '__new__' && isReadOnly) {
+      alert('ไม่สามารถเพิ่มแม่หมอใหม่ได้ เนื่องจากปีที่เลือกไม่ใช่ปีปัจจุบัน');
+      this.value = '';
+      return;
+    }
+
     if (value === '__new__') {
-      // Clear all data when creating new astrologer
       matrixData = {};
       initialMatrixData = {};
       selectedLuckyTypes = [];
 
-      newInput.classList.add('show');
+      const newContainer = document.getElementById('new-astrologer-container');
+      newContainer.classList.add('show');
       newInput.focus();
+
       currentAstrologer = '';
       currentAstrologerId = null;
       typeSelectionContainer.classList.remove('show');
       deleteBtn.style.display = 'none';
       clearBtn.style.display = 'none';
+
+      const submitBtn = document.getElementById('submit-all-btn');
+      submitBtn.style.display = 'none';
+
       document.getElementById('table-container').innerHTML = `
         <div class="empty-state">
           <h3>✏️ กรอกชื่อแม่หมอใหม่</h3>
-          <p>กรุณากรอกชื่อแม่หมอในช่องด้านบน แล้วกดปุ่มใดก็ได้เพื่อสร้างตาราง</p>
+          <p>กรุณากรอกชื่อแม่หมอในช่องด้านบน แล้วกดปุ่ม "เพิ่มแม่หมอ" เพื่อสร้างแม่หมอและเริ่มกรอกข้อมูลสีมงคล</p>
         </div>
       `;
-      updateSaveButtonState();
     } else if (value) {
+      const newContainer = document.getElementById('new-astrologer-container');
+      newContainer.classList.remove('show');
       newInput.classList.remove('show');
       newInput.value = '';
       currentAstrologer = value;
       currentAstrologerId = selectedOption.getAttribute('data-id');
       deleteBtn.style.display = 'block';
-      // Don't set clearBtn visibility here - let updateSaveButtonState() handle it
 
-      // Clear old data first, then load new data
       matrixData = {};
       initialMatrixData = {};
 
-      // Load existing data for this astrologer
-      loadAstrologerData();
+      await loadAstrologerData();
 
       showTypeSelection();
       updateSaveButtonState();
     } else {
-      // Clear all data when deselecting
       matrixData = {};
       initialMatrixData = {};
       selectedLuckyTypes = [];
 
+      const newContainer = document.getElementById('new-astrologer-container');
+      newContainer.classList.remove('show');
       newInput.classList.remove('show');
       newInput.value = '';
+
       currentAstrologer = '';
       currentAstrologerId = null;
       typeSelectionContainer.classList.remove('show');
@@ -137,30 +330,112 @@ function initAstrologerSelector() {
   });
 }
 
-// New astrologer input
 function initNewAstrologerInput() {
-  document.getElementById('new-astrologer-input').addEventListener('blur', function () {
+  const newInput = document.getElementById('new-astrologer-input');
+
+  newInput.addEventListener('input', function () {
     const name = this.value.trim();
-    if (name) {
-      currentAstrologer = name;
-      showTypeSelection();
-      document.getElementById('submit-all-btn').disabled = false;
+
+    const createBtn = document.getElementById('btn-create-astrologer');
+    if (createBtn) {
+      createBtn.disabled = !name;
+    }
+
+    const inlineBtn = document.getElementById('btn-add-astrologer-inline');
+    if (inlineBtn) {
+      inlineBtn.disabled = !name;
     }
   });
 
-  document.getElementById('new-astrologer-input').addEventListener('keypress', function (e) {
+  newInput.addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
-      this.blur();
+      const name = this.value.trim();
+      if (name) {
+        createNewAstrologer();
+      }
     }
   });
 }
 
-// Show type selection checkboxes
+
+async function createNewAstrologer() {
+  const newInput = document.getElementById('new-astrologer-input');
+  const astrologerName = newInput.value.trim();
+
+  if (!astrologerName) {
+    alert('กรุณากรอกชื่อแม่หมอ');
+    return;
+  }
+
+  showConfirmModal(
+    'ยืนยันจะเพิ่มแม่หมอ "' + astrologerName + '"?',
+    async function () {
+      try {
+        const response = await fetch(getContextPath() + '/api/admin/astrologer/add', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: 'astrologerName=' + encodeURIComponent(astrologerName)
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create astrologer');
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+          currentAstrologer = astrologerName;
+          currentAstrologerId = result.astrologerId;
+
+          const astrologerSelect = document.getElementById('astrologer-select');
+          const newOption = document.createElement('option');
+          newOption.value = astrologerName;
+          newOption.textContent = astrologerName;
+          newOption.setAttribute('data-id', currentAstrologerId);
+
+          const addNewOption = astrologerSelect.querySelector('option[value="__new__"]');
+          astrologerSelect.insertBefore(newOption, addNewOption);
+
+          astrologerSelect.value = astrologerName;
+
+          const newContainer = document.getElementById('new-astrologer-container');
+          newContainer.classList.remove('show');
+          newInput.value = '';
+
+          document.getElementById('table-container').innerHTML = `
+            <div class="empty-state">
+              <h3>✅ เพิ่มแม่หมอสำเร็จ</h3>
+              <p>กำลังสร้างตารางสีมงคล...</p>
+            </div>
+          `;
+
+          setTimeout(() => {
+            showTypeSelection();
+            document.getElementById('submit-all-btn').style.display = 'block';
+            document.getElementById('delete-astrologer-btn').style.display = 'block';
+            updateSaveButtonState();
+          }, 500);
+
+        } else {
+          alert('ไม่สามารถเพิ่มแม่หมอได้: ' + (result.message || 'เกิดข้อผิดพลาด'));
+        }
+
+      } catch (error) {
+        console.error('Error creating astrologer:', error);
+        alert('เกิดข้อผิดพลาดในการเพิ่มแม่หมอ กรุณาลองใหม่อีกครั้ง');
+      }
+    },
+    'ยืนยันการเพิ่มแม่หมอ'
+  );
+}
+
+
 function showTypeSelection() {
   const container = document.getElementById('type-selection-container');
   const checkboxesDiv = document.getElementById('type-checkboxes');
 
-  // Generate checkboxes
   let html = '';
   luckyTypes.forEach(type => {
     const isKalakinee = type.name === 'กาลกิณี' || type.name === 'กาลากินี' || type.name.includes('กาล');
@@ -175,8 +450,6 @@ function showTypeSelection() {
   checkboxesDiv.innerHTML = html;
   container.classList.add('show');
 
-  // If selectedLuckyTypes already set by loadAstrologerData, use those
-  // Otherwise select all by default
   if (selectedLuckyTypes.length === 0) {
     selectedLuckyTypes = luckyTypes.map(t => t.id);
   }
@@ -187,7 +460,6 @@ function showTypeSelection() {
   });
   updateCheckboxStyles();
 
-  // Build matrix preserving loaded data
   if (Object.keys(matrixData).length > 0) {
     buildMatrixPreservingData(matrixData);
   } else {
@@ -195,16 +467,14 @@ function showTypeSelection() {
   }
 }
 
-// Toggle checkbox
+
 function toggleTypeCheckbox(typeId) {
   const checkbox = document.getElementById('type-' + typeId);
   checkbox.checked = !checkbox.checked;
   handleTypeChange();
 }
 
-// Handle type selection change
 function handleTypeChange() {
-  // Save current data before rebuilding
   const previousData = JSON.parse(JSON.stringify(matrixData));
 
   selectedLuckyTypes = [];
@@ -215,7 +485,6 @@ function handleTypeChange() {
     }
   });
 
-  // Remove data for unselected types
   Object.keys(previousData).forEach(key => {
     const typeId = parseInt(key.split('-')[1]);
     if (!selectedLuckyTypes.includes(typeId)) {
@@ -225,7 +494,8 @@ function handleTypeChange() {
 
   updateCheckboxStyles();
 
-  // Rebuild matrix
+  saveToSessionStorage();
+
   if (selectedLuckyTypes.length > 0) {
     buildMatrixPreservingData(previousData);
   } else {
@@ -238,7 +508,7 @@ function handleTypeChange() {
   }
 }
 
-// Update checkbox visual styles
+
 function updateCheckboxStyles() {
   luckyTypes.forEach(type => {
     const checkbox = document.getElementById('type-' + type.id);
@@ -251,7 +521,6 @@ function updateCheckboxStyles() {
   });
 }
 
-// Select all types
 function selectAllTypes() {
   luckyTypes.forEach(type => {
     document.getElementById('type-' + type.id).checked = true;
@@ -259,12 +528,10 @@ function selectAllTypes() {
   handleTypeChange();
 }
 
-// Build matrix table preserving existing data
+
 function buildMatrixPreservingData(previousData) {
-  // Keep existing data
   matrixData = previousData || matrixData;
 
-  // Filter only selected types
   const selectedTypes = luckyTypes.filter(t => selectedLuckyTypes.includes(t.id));
 
   if (selectedTypes.length === 0) {
@@ -277,11 +544,21 @@ function buildMatrixPreservingData(previousData) {
     return;
   }
 
+  // Sort: กาลกิณี at the end, others by original order
+  const sortedTypes = [...selectedTypes].sort((a, b) => {
+    const aIsKalakinee = a.name === 'กาลกิณี' || a.name === 'กาลากินี' || a.name.includes('กาล');
+    const bIsKalakinee = b.name === 'กาลกิณี' || b.name === 'กาลากินี' || b.name.includes('กาล');
+
+    if (aIsKalakinee && !bIsKalakinee) return 1;
+    if (!aIsKalakinee && bIsKalakinee) return -1;
+    return 0;
+  });
+
   let html = '<table class="matrix-table">';
   html += '<thead><tr>';
   html += '<th>วัน \\ ด้านโชคลาภ</th>';
 
-  selectedTypes.forEach(type => {
+  sortedTypes.forEach(type => {
     html += '<th>' + type.name + '</th>';
   });
 
@@ -291,13 +568,15 @@ function buildMatrixPreservingData(previousData) {
     html += '<tr>';
     html += '<td>' + day + '</td>';
 
-    selectedTypes.forEach(type => {
+    sortedTypes.forEach(type => {
       const cellKey = day + '-' + type.id;
       const isKalakinee = type.name === 'กาลกิณี' || type.name === 'กาลากินี' || type.name.includes('กาล');
-      const cellClass = 'matrix-cell empty' + (isKalakinee ? ' kalakinee-cell' : '');
+      const cellClass = 'matrix-cell empty' + (isKalakinee ? ' kalakinee-cell' : '') + (isReadOnly ? ' read-only' : '');
 
       html += '<td>';
-      html += '<div class="' + cellClass + '" data-day="' + day + '" data-type="' + type.id + '" data-typename="' + type.name + '" onclick="openCellColorPicker(this)">';
+      const onclickAttr = isReadOnly ? '' : 'onclick="openCellColorPicker(this)"';
+      const cursorStyle = isReadOnly ? 'cursor: default;' : '';
+      html += '<div class="' + cellClass + '" data-day="' + day + '" data-type="' + type.id + '" data-typename="' + type.name + '" ' + onclickAttr + ' style="' + cursorStyle + '">';
       html += '<div class="cell-colors" id="cell-' + cellKey + '"></div>';
       html += '</div>';
       html += '</td>';
@@ -310,7 +589,6 @@ function buildMatrixPreservingData(previousData) {
 
   document.getElementById('table-container').innerHTML = html;
 
-  // Restore colors to cells
   Object.keys(matrixData).forEach(key => {
     const cellDiv = document.querySelector('[data-day="' + key.split('-')[0] + '"][data-type="' + key.split('-')[1] + '"]');
     if (cellDiv && matrixData[key] && matrixData[key].length > 0) {
@@ -321,14 +599,12 @@ function buildMatrixPreservingData(previousData) {
   updateSaveButtonState();
 }
 
-// Build matrix table (fresh start)
 function buildMatrix(preserveInitialData = false) {
-  matrixData = {}; // Reset data
+  matrixData = {};
   if (!preserveInitialData) {
-    initialMatrixData = {}; // Reset initial state
+    initialMatrixData = {};
   }
 
-  // Filter only selected types
   const selectedTypes = luckyTypes.filter(t => selectedLuckyTypes.includes(t.id));
 
   if (selectedTypes.length === 0) {
@@ -341,11 +617,21 @@ function buildMatrix(preserveInitialData = false) {
     return;
   }
 
+  // Sort: กาลกิณี at the end, others by original order
+  const sortedTypes = [...selectedTypes].sort((a, b) => {
+    const aIsKalakinee = a.name === 'กาลกิณี' || a.name === 'กาลากินี' || a.name.includes('กาล');
+    const bIsKalakinee = b.name === 'กาลกิณี' || b.name === 'กาลากินี' || b.name.includes('กาล');
+
+    if (aIsKalakinee && !bIsKalakinee) return 1;
+    if (!aIsKalakinee && bIsKalakinee) return -1;
+    return 0;
+  });
+
   let html = '<table class="matrix-table">';
   html += '<thead><tr>';
   html += '<th>วัน \\ ด้านโชคลาภ</th>';
 
-  selectedTypes.forEach(type => {
+  sortedTypes.forEach(type => {
     html += '<th>' + type.name + '</th>';
   });
 
@@ -355,13 +641,15 @@ function buildMatrix(preserveInitialData = false) {
     html += '<tr>';
     html += '<td>' + day + '</td>';
 
-    selectedTypes.forEach(type => {
+    sortedTypes.forEach(type => {
       const cellKey = day + '-' + type.id;
       const isKalakinee = type.name === 'กาลกิณี' || type.name === 'กาลากินี' || type.name.includes('กาล');
-      const cellClass = 'matrix-cell empty' + (isKalakinee ? ' kalakinee-cell' : '');
+      const cellClass = 'matrix-cell empty' + (isKalakinee ? ' kalakinee-cell' : '') + (isReadOnly ? ' read-only' : '');
 
       html += '<td>';
-      html += '<div class="' + cellClass + '" data-day="' + day + '" data-type="' + type.id + '" data-typename="' + type.name + '" onclick="openCellColorPicker(this)">';
+      const onclickAttr = isReadOnly ? '' : 'onclick="openCellColorPicker(this)"';
+      const cursorStyle = isReadOnly ? 'cursor: default;' : '';
+      html += '<div class="' + cellClass + '" data-day="' + day + '" data-type="' + type.id + '" data-typename="' + type.name + '" ' + onclickAttr + ' style="' + cursorStyle + '">';
       html += '<div class="cell-colors" id="cell-' + cellKey + '"></div>';
       html += '</div>';
       html += '</td>';
@@ -443,6 +731,12 @@ function getDisabledColorsForCell(day, typeId) {
 
 // Open color picker for a cell
 function openCellColorPicker(cellDiv) {
+  // Prevent editing if in read-only mode
+  if (isReadOnly) {
+    alert('ไม่สามารถแก้ไขข้อมูลได้ เนื่องจากปีที่เลือกไม่ใช่ปีปัจจุบัน\nคุณสามารถดูข้อมูล History เท่านั้น');
+    return;
+  }
+
   currentEditingCell = cellDiv;
   const day = cellDiv.dataset.day;
   const typeId = cellDiv.dataset.type;
@@ -571,14 +865,9 @@ function confirmColors() {
     delete matrixData[cellKey];
   }
 
-  // Update cell display
   updateCellDisplay(currentEditingCell, selectedColors);
 
-  // If this is กาลกิณี, need to update other cells on same day to disable these colors
-  if (isKalakineeType(typeId)) {
-    // Force re-render of affected cells if they're open
-    // This ensures colors are properly disabled in other types
-  }
+  saveToSessionStorage();
 
   updateSaveButtonState();
   closeColorModal();
@@ -629,18 +918,12 @@ function submitAll() {
     return;
   }
 
-  // Check if using new astrologer name
-  const newInput = document.getElementById('new-astrologer-input');
-  let astrologerName = newInput.classList.contains('show') ? newInput.value.trim() : currentAstrologer;
+  // Use currentAstrologer directly (no longer need to check newInput)
+  let astrologerName = currentAstrologer;
 
   if (!astrologerName) {
     alert('กรุณากรอกชื่อแม่หมอ');
     return;
-  }
-
-  // If new astrologer, prefix with __new__:
-  if (newInput.classList.contains('show')) {
-    astrologerName = '__new__:' + astrologerName;
   }
 
   // Count entries
@@ -652,7 +935,8 @@ function submitAll() {
     }
   });
 
-  // Check if this is a deletion (cleared all data)
+  // Determine action type - check if astrologer was recently created (no initialMatrixData)
+  const isNewAstrologer = Object.keys(initialMatrixData).length === 0 && currentAstrologerId;
   const isClearing = entryCount === 0 && Object.keys(initialMatrixData).length > 0;
 
   if (entryCount === 0 && !isClearing) {
@@ -663,18 +947,25 @@ function submitAll() {
   // Confirm message based on action
   let confirmMessage;
   let confirmTitle;
+
   if (isClearing) {
-    confirmMessage = 'ยืนยันการลบข้อมูลสีมงคลทั้งหมดของแม่หมอนี้?';
+    // ลบข้อมูลทั้งหมด
+    confirmMessage = 'ยืนยันจะลบข้อมูลสีมงคลทั้งหมดของแม่หมอนี้?';
     confirmTitle = 'ยืนยันการลบข้อมูล';
+  } else if (isNewAstrologer) {
+    // เพิ่มแม่หมอใหม่
+    confirmMessage = 'ยืนยันจะเพิ่มข้อมูลสีมงคล ' + entryCount + ' รายการ?';
+    confirmTitle = 'ยืนยันการเพิ่มข้อมูล';
   } else {
-    confirmMessage = 'ยืนยันการบันทึก ' + entryCount + ' รายการ?';
-    confirmTitle = 'ยืนยันการบันทึก';
+    // แก้ไขข้อมูลแม่หมอที่มีอยู่
+    confirmMessage = 'ยืนยันจะแก้ไขข้อมูลสีมงคล ' + entryCount + ' รายการ?';
+    confirmTitle = 'ยืนยันการแก้ไขข้อมูล';
   }
 
   // Show confirmation modal
   showConfirmModal(confirmMessage, function () {
-    // Prepare matrix data string format: "day-typeId:colorId1,colorId2,colorId3;day2-typeId2:..."
-    const matrixDataStr = Object.keys(matrixData).map(key => {
+    // Prepare lucky colors data string format: "day-typeId:colorId1,colorId2,colorId3;day2-typeId2:..."
+    const luckyColorsDataStr = Object.keys(matrixData).map(key => {
       const colorIds = matrixData[key];
       if (colorIds && colorIds.length > 0) {
         return key + ':' + colorIds.join(',');
@@ -682,10 +973,19 @@ function submitAll() {
       return '';
     }).filter(s => s !== '').join(';');
 
+    // Determine action type
+    const isNewlyCreatedAstrologer = Object.keys(initialMatrixData).length === 0 && currentAstrologerId;
+
     // Create form and submit
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = getContextPath() + '/save-matrix-data';
+
+    // Use different endpoint based on whether it's new or edit
+    if (isNewlyCreatedAstrologer) {
+      form.action = getContextPath() + '/admin/lucky-color/save';
+    } else {
+      form.action = getContextPath() + '/admin/lucky-color/edit';
+    }
 
     const astrologerInput = document.createElement('input');
     astrologerInput.type = 'hidden';
@@ -699,11 +999,11 @@ function submitAll() {
     yearInput.value = currentYear;
     form.appendChild(yearInput);
 
-    const matrixDataInput = document.createElement('input');
-    matrixDataInput.type = 'hidden';
-    matrixDataInput.name = 'matrixData';
-    matrixDataInput.value = matrixDataStr;
-    form.appendChild(matrixDataInput);
+    const luckyColorsDataInput = document.createElement('input');
+    luckyColorsDataInput.type = 'hidden';
+    luckyColorsDataInput.name = 'luckyColorsData';
+    luckyColorsDataInput.value = luckyColorsDataStr;
+    form.appendChild(luckyColorsDataInput);
 
     // Send selected types - this is crucial for deletion to work
     const selectedTypesInput = document.createElement('input');
@@ -712,12 +1012,13 @@ function submitAll() {
     selectedTypesInput.value = selectedLuckyTypes.join(',');
     form.appendChild(selectedTypesInput);
 
+    clearSessionStorage();
+
     document.body.appendChild(form);
     form.submit();
   }, confirmTitle);
 }
 
-// Delete astrologer
 let pendingDeleteAstrologerId = null;
 
 function deleteAstrologer(astrologerId, astrologerName) {
@@ -735,36 +1036,35 @@ function confirmDeleteAstrologer() {
   if (pendingDeleteAstrologerId) {
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = getContextPath() + '/delete/astrologer/' + pendingDeleteAstrologerId;
+    form.action = getContextPath() + '/admin/astrologer/delete/' + pendingDeleteAstrologerId;
 
     document.body.appendChild(form);
     form.submit();
   }
 }
 
-// Delete current selected astrologer
 function deleteCurrentAstrologer() {
   if (currentAstrologerId && currentAstrologer) {
     deleteAstrologer(currentAstrologerId, currentAstrologer);
   }
 }
 
-// Clear form
 function clearForm() {
-  // Show confirmation before clearing
   showConfirmModal(
     'คุณต้องการล้างข้อมูลทั้งหมดในฟอร์มนี้หรือไม่?',
     function () {
       matrixData = {};
-      // Don't reset initialMatrixData so hasChanges() detects the clearing
-      buildMatrix(true); // Pass true to preserve initialMatrixData
+      buildMatrix(true);
+
+      clearSessionStorage();
+
       updateSaveButtonState();
     },
     'ยืนยันการล้างฟอร์ม'
   );
 }
 
-// Check if data has changed
+
 function hasChanges() {
   const currentKeys = Object.keys(matrixData).filter(k => matrixData[k] && matrixData[k].length > 0);
   const initialKeys = Object.keys(initialMatrixData).filter(k => initialMatrixData[k] && initialMatrixData[k].length > 0);
@@ -780,17 +1080,14 @@ function hasChanges() {
   return false;
 }
 
-// Update save button state
 function updateSaveButtonState() {
   const saveBtn = document.getElementById('submit-all-btn');
   const clearBtn = document.getElementById('clear-form-btn');
   const hasData = Object.keys(matrixData).some(k => matrixData[k] && matrixData[k].length > 0);
   const changed = hasChanges();
 
-  // Check if user cleared form (no data but had initial data)
   const isClearing = !hasData && Object.keys(initialMatrixData).length > 0;
 
-  // Update clear button visibility - only show if there's data to clear
   if (clearBtn) {
     if (hasData) {
       clearBtn.style.display = 'block';
@@ -817,6 +1114,72 @@ function getContextPath() {
 
 function setContextPath(path) {
   contextPath = path;
+}
+
+function getSessionStorageKey() {
+  return `adminDashboard_${currentAstrologer}_${currentYear}`;
+}
+
+function saveToSessionStorage() {
+  if (!currentAstrologer) return;
+
+  const sessionData = {
+    matrixData: matrixData,
+    selectedLuckyTypes: selectedLuckyTypes,
+    timestamp: new Date().getTime()
+  };
+
+  try {
+    sessionStorage.setItem(getSessionStorageKey(), JSON.stringify(sessionData));
+  } catch (e) {
+    console.error('Failed to save to session storage:', e);
+  }
+}
+
+function loadFromSessionStorage() {
+  if (!currentAstrologer) return false;
+
+  try {
+    const savedData = sessionStorage.getItem(getSessionStorageKey());
+    if (savedData) {
+      const sessionData = JSON.parse(savedData);
+
+      const now = new Date().getTime();
+      const maxAge = 24 * 60 * 60 * 1000;
+
+      if (now - sessionData.timestamp < maxAge) {
+        matrixData = sessionData.matrixData || {};
+        selectedLuckyTypes = sessionData.selectedLuckyTypes || [];
+        return true;
+      } else {
+        clearSessionStorage();
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load from session storage:', e);
+  }
+
+  return false;
+}
+
+function clearSessionStorage() {
+  try {
+    sessionStorage.removeItem(getSessionStorageKey());
+  } catch (e) {
+    console.error('Failed to clear session storage:', e);
+  }
+}
+
+function clearAllSessionStorage() {
+  try {
+    Object.keys(sessionStorage).forEach(key => {
+      if (key.startsWith('adminDashboard_')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+  } catch (e) {
+    console.error('Failed to clear all session storage:', e);
+  }
 }
 
 let confirmModalCallback = null;

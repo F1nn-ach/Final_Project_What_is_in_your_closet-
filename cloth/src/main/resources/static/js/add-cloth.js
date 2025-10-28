@@ -166,7 +166,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             showProcessingOverlay();
-            updateProcessingMessage("กำลังลบพื้นหลัง...", "กรุณารอสักครู่ เรากำลังประมวลผลรูปภาพของคุณ");
+            updateProcessingMessage("กำลังประมวลผล...", "กรุณารอสักครู่ เรากำลังลบพื้นหลังและวิเคราะห์สีของเสื้อผ้า");
             clearClassificationResults();
             classificationPromise = null;
             classificationResultData = null;
@@ -176,7 +176,7 @@ document.addEventListener("DOMContentLoaded", function () {
             formData.append("username", username);
 
             try {
-                const response = await fetch("/api/remove-background", {
+                const response = await fetch("/cloth/api/analyze-image", {
                     method: "POST",
                     body: formData,
                 });
@@ -195,45 +195,24 @@ document.addEventListener("DOMContentLoaded", function () {
                 try {
                     result = JSON.parse(responseText);
                 } catch (jsonError) {
-                    throw new Error(`Failed to parse JSON response from /api/remove-background. Raw response: ${responseText.substring(0, 200)}...`);
+                    throw new Error(`Failed to parse JSON response from /api/analyze-image. Raw response: ${responseText.substring(0, 200)}...`);
                 }
 
-                if (result.imagePath) {
+                if (result.success && result.imagePath && result.colors) {
                     uploadPrompt.style.display = "none";
                     previewImage.src = imageBaseUrl + username + "/" + result.imagePath;
                     previewImage.style.display = "block";
                     imageFileInput.value = result.imagePath;
                     imageUrlInput.value = imageBaseUrl + username + "/" + result.imagePath;
 
-
-                    updateProcessingMessage("กำลังวิเคราะห์สี...", "เรากำลังระบุและจำแนกสีของเสื้อผ้าให้คุณ");
-
-                    classificationPromise = fetch("/api/classify-cloth-color", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({ imageUrl: imageBaseUrl + username + "/" + result.imagePath }),
-                    })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`Color classification failed. HTTP status: ${response.status}`);
-                            }
-                            return response.json();
-                        })
-                        .then(classifyResult => {
-                            classificationResultData = classifyResult;
-                            displayClassificationResults(classificationResultData);
-                            classifiedColorInput.value = JSON.stringify(classificationResultData);
-                            hideProcessingOverlay();
-                        })
-                        .catch(error => {
-                            classificationResultData = null;
-                            hideProcessingOverlay();
-                        });
+                    // Process color classification results
+                    classificationResultData = { colors: result.colors };
+                    displayClassificationResults(classificationResultData);
+                    classifiedColorInput.value = JSON.stringify(classificationResultData);
+                    hideProcessingOverlay();
 
                 } else {
-                    throw new Error("Invalid API response format for remove-background.");
+                    throw new Error(result.message || "Invalid API response format for analyze-image.");
                 }
             } catch (error) {
                 hideProcessingOverlay();
@@ -257,25 +236,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Handle form submission
-    addClothForm.addEventListener("submit", async (event) => {
-        event.preventDefault(); // Prevent default form submission
-
-        if (classificationPromise) {
-            showProcessingOverlay();
-            updateProcessingMessage("กำลังเตรียมข้อมูล...", "เรากำลังเตรียมข้อมูลสีสำหรับบันทึก");
-
-            try {
-                await classificationPromise; // Wait for the classification to complete
-                hideProcessingOverlay();
-            } catch (error) {
-                hideProcessingOverlay();
-                alert("Color classification failed. Please try again.");
-                return;
-            }
-        }
-
-        // Now that classifiedColorInput.value should be populated, submit the form
-        event.target.submit();
+    addClothForm.addEventListener("submit", (event) => {
+        // Form can be submitted directly as analysis is already completed
+        // The classifiedColorInput value is already populated during image upload
     });
 
 

@@ -244,6 +244,7 @@ main {
   font-weight: 600;
   position: relative;
   z-index: 2;
+  text-align: center;
 }
 
 /* Color Palette - clean template style */
@@ -252,6 +253,33 @@ main {
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 15px;
+  justify-content: center;
+  max-height: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(33, 150, 243, 0.4) rgba(248, 249, 250, 0.3);
+}
+
+/* Custom scrollbar for webkit browsers */
+.color-palette::-webkit-scrollbar {
+  width: 8px;
+}
+
+.color-palette::-webkit-scrollbar-track {
+  background: rgba(248, 249, 250, 0.5);
+  border-radius: 10px;
+}
+
+.color-palette::-webkit-scrollbar-thumb {
+  background: rgba(33, 150, 243, 0.3);
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+.color-palette::-webkit-scrollbar-thumb:hover {
+  background: rgba(33, 150, 243, 0.5);
 }
 
 .sub-color-palette {
@@ -1428,6 +1456,121 @@ main {
   }
 
   .empty-desc {
+    font-size: 0.9rem;
+  }
+}
+
+/* Loading Indicator - Modern Hybrid Style */
+.loading-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.loading-indicator.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.loading-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  animation: backdropFadeIn 0.3s ease;
+}
+
+@keyframes backdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.loading-content {
+  position: relative;
+  z-index: 10;
+  background: white;
+  padding: 32px 48px;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  animation: loadingContentPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes loadingContentPop {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(33, 150, 243, 0.1);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Responsive loading indicator */
+@media (max-width: 768px) {
+  .loading-content {
+    padding: 24px 36px;
+  }
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border-width: 3px;
+  }
+
+  .loading-text {
     font-size: 0.9rem;
   }
 }

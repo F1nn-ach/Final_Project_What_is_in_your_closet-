@@ -1,14 +1,11 @@
 package com.matching.cloth.models;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -18,26 +15,23 @@ public class LuckyListColor {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int luckyListColorId;
 
-    @Column(name = "luckyListColorName", nullable = false, length = 50)
-    private String luckyListColorName;
+    @ManyToOne
+    @JoinColumn(name = "luckyColorId", nullable = false)
+    private LuckyColor luckyColor;
 
-    @Column(name = "luckyListHex", nullable = false, length = 7)
-    private String luckyListHex;
-
-    @OneToMany(mappedBy = "luckyListColor")
-    private List<LuckyColorItem> luckyColorItems = new ArrayList<>();
+    @ManyToOne
+    @JoinColumn(name = "colorCategoryId", nullable = false)
+    private ColorCategory colorCategory;
 
     public LuckyListColor() {
         super();
     }
 
-    public LuckyListColor(int luckyListColorId, String luckyListColorName, String luckyListHex,
-            List<LuckyColorItem> luckyColorItems) {
+    public LuckyListColor(int luckyListColorId, LuckyColor luckyColor, ColorCategory colorCategory) {
         super();
         this.luckyListColorId = luckyListColorId;
-        this.luckyListColorName = luckyListColorName;
-        this.luckyListHex = luckyListHex;
-        this.luckyColorItems = luckyColorItems;
+        this.luckyColor = luckyColor;
+        this.colorCategory = colorCategory;
     }
 
     public int getLuckyListColorId() {
@@ -48,27 +42,19 @@ public class LuckyListColor {
         this.luckyListColorId = luckyListColorId;
     }
 
-    public String getLuckyListColorName() {
-        return luckyListColorName;
+    public LuckyColor getLuckyColor() {
+        return luckyColor;
     }
 
-    public void setLuckyListColorName(String luckyListColorName) {
-        this.luckyListColorName = luckyListColorName;
+    public void setLuckyColor(LuckyColor luckyColor) {
+        this.luckyColor = luckyColor;
     }
 
-    public String getLuckyListHex() {
-        return luckyListHex;
+    public ColorCategory getColorCategory() {
+        return colorCategory;
     }
 
-    public void setLuckyListHex(String luckyListHex) {
-        this.luckyListHex = luckyListHex;
-    }
-
-    public List<LuckyColorItem> getLuckyColorItems() {
-        return luckyColorItems;
-    }
-
-    public void setLuckyColorItems(List<LuckyColorItem> luckyColorItems) {
-        this.luckyColorItems = luckyColorItems;
+    public void setColorCategory(ColorCategory colorCategory) {
+        this.colorCategory = colorCategory;
     }
 }

@@ -59,10 +59,10 @@
           <div class="hero-buttons">
             <c:choose>
               <c:when test="${not empty sessionScope.user}">
-                <a href="${pageContext.request.contextPath}/matching-item" class="btn btn-primary">
+                <a href="${pageContext.request.contextPath}/api/matching/page" class="btn btn-primary">
                   เริ่มจับคู่สีเลย
                 </a>
-                <a href="${pageContext.request.contextPath}/list-item" class="btn btn-secondary">
+                <a href="${pageContext.request.contextPath}/cloth/list" class="btn btn-secondary">
                   เสื้อผ้าของฉัน
                 </a>
               </c:when>
@@ -131,9 +131,9 @@
           <div class="lucky-color-display">
             <c:choose>
               <c:when test="${not empty selectedItem}">
-                <div class="lucky-color" style="background: ${selectedItem.luckyListColor.luckyListHex}"></div>
+                <div class="lucky-color" style="background: ${selectedItem.colorCategory.colorCategoryHex}"></div>
                 <div class="color-info">
-                  <h3>สี${selectedItem.luckyListColor.luckyListColorName}</h3>
+                  <h3>สี${selectedItem.colorCategory.colorCategoryName}</h3>
                   <p>โห้โชคด้าน${selectedItem.luckyColor.luckyColorType.luckyColorTypeName}</p>
                 </div>
               </c:when>
@@ -149,13 +149,13 @@
 
           <c:choose>
             <c:when test="${not empty sessionScope.user}">
-              <a href="${pageContext.request.contextPath}/matching-item" class="btn btn-primary auth-link">
+              <a href="${pageContext.request.contextPath}/api/matching/page" class="btn btn-primary auth-link">
                 ดูเสื้อผ้าที่เหมาะสม
               </a>
             </c:when>
             <c:otherwise>
               <p class="login-prompt">
-                <a href="${pageContext.request.contextPath}/login" class="auth-link">เข้าสู่ระบบ</a>
+                <a href="${pageContext.request.contextPath}/user-login" class="auth-link">เข้าสู่ระบบ</a>
                 เพื่อดูเสื้อผ้าที่เหมาะสมกับสีมงคลวันนี้
               </p>
             </c:otherwise>

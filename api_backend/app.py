@@ -1,8 +1,7 @@
-from flask import Flask, request, jsonify, send_from_directory, render_template
+from flask import Flask, request, jsonify, send_from_directory
 from remove_bg.remove_bg import process_image_for_bg_removal
-from matching_color.matching_logic2 import match_colors_logic
+from matching_color.matching_logic import match_colors_logic
 from classify_color.color_classifier import extract_color_palette
-from classify_color.color_group import classify_all_colors
 import os
 from flask_cors import CORS
 
@@ -62,17 +61,6 @@ def match_colors_route():
 @app.route("/")
 def serve_index():
     return send_from_directory("basic_client", "index.html")
-
-
-@app.route("/list-colors")
-def cloth_list():
-    all_colors = classify_all_colors()
-    grouped = {}
-    for c in all_colors:
-        grouped.setdefault(c["main_group"], []).append(c)
-
-    return render_template("index.html", colors=grouped)
-
 
 if __name__ == "__main__":
     app.run(debug=True)

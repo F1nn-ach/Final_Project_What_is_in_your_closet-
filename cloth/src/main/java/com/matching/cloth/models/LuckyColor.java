@@ -32,7 +32,7 @@ public class LuckyColor {
     private LuckyColorType luckyColorType;
 
     @OneToMany(mappedBy = "luckyColor", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<LuckyColorItem> luckyColorItems = new ArrayList<>();
+    private List<LuckyListColor> luckyListColors = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "astrologerId", nullable = false)
@@ -43,13 +43,13 @@ public class LuckyColor {
     }
 
     public LuckyColor(int luckyColorId, String luckyDayOfWeek, int year, LuckyColorType luckyColorType,
-            List<LuckyColorItem> luckyColorItems, Astrologer astrologer) {
+            List<LuckyListColor> luckyListColors, Astrologer astrologer) {
         super();
         this.luckyColorId = luckyColorId;
         this.luckyDayOfWeek = luckyDayOfWeek;
         this.year = year;
         this.luckyColorType = luckyColorType;
-        this.luckyColorItems = luckyColorItems;
+        this.luckyListColors = luckyListColors;
         this.astrologer = astrologer;
     }
 
@@ -93,11 +93,11 @@ public class LuckyColor {
         this.astrologer = astrologer;
     }
 
-    public List<LuckyColorItem> getLuckyColorItems() {
-        return luckyColorItems;
+    public List<LuckyListColor> getLuckyListColors() {
+        return luckyListColors;
     }
 
-    public void setLuckyColorItems(List<LuckyColorItem> luckyColorItems) {
-        this.luckyColorItems = luckyColorItems;
+    public void setLuckyListColors(List<LuckyListColor> luckyListColors) {
+        this.luckyListColors = luckyListColors;
     }
 }

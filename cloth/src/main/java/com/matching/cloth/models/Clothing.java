@@ -3,65 +3,57 @@ package com.matching.cloth.models;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "cloth")
+@Table(name = "clothing")
 public class Clothing {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	@Column(name = "clothId")
-	private int clothId;
+	@Column(name = "clothingId")
+	private int clothingId;
 
 	@ManyToOne
-	@JoinColumn(name = "userId", nullable = false) // เปลี่ยนชื่อ column ให้ชัดเจน
+	@JoinColumn(name = "userId", nullable = false)
 	private User user;
 
 	@ManyToOne
-	@JoinColumn(name = "clothTypeId", nullable = false)
-	private ClothingType clothType;
+	@JoinColumn(name = "clothingTypeId", nullable = false)
+	private ClothingType clothingType;
 
-	@ManyToOne
-	@JoinColumn(name = "subColorCategoryId")
-	private SubColorCategory subColorCategory;
+	@OneToMany(mappedBy = "clothing", cascade = CascadeType.ALL)
+	private List<ClothingColor> clothingColors = new ArrayList<>();
 
-	@Column(name = "clothImage", length = 255)
-	private String clothImage;
-
-	@ElementCollection
-	@Column(name = "colorHex", nullable = false)
-	private List<String> colorHex = new ArrayList<>();
+	@Column(name = "clothingImage", length = 255)
+	private String clothingImage;
 
 	public Clothing() {
 		super();
 	}
 
-	public Clothing(User user, ClothingType clothType, SubColorCategory subColorCategory, String clothImage,
-			List<String> colorHex) {
+	public Clothing(User user, ClothingType clothingType, String clothingImage) {
 		super();
 		this.user = user;
-		this.clothType = clothType;
-		this.subColorCategory = subColorCategory;
-		this.clothImage = clothImage;
-		this.colorHex = colorHex;
+		this.clothingType = clothingType;
+		this.clothingImage = clothingImage;
 	}
 
-	public int getClothId() {
-		return clothId;
+	public int getClothingId() {
+		return clothingId;
 	}
 
-	public void setClothId(int clothId) {
-		this.clothId = clothId;
+	public void setClothingId(int clothingId) {
+		this.clothingId = clothingId;
 	}
 
 	public User getUser() {
@@ -72,35 +64,34 @@ public class Clothing {
 		this.user = user;
 	}
 
-	public ClothingType getClothType() {
-		return clothType;
+	public ClothingType getClothingType() {
+		return clothingType;
 	}
 
-	public void setClothType(ClothingType clothType) {
-		this.clothType = clothType;
+	public void setClothingType(ClothingType clothingType) {
+		this.clothingType = clothingType;
 	}
 
-	public SubColorCategory getSubColorCategory() {
-		return subColorCategory;
+	public List<ClothingColor> getClothingColors() {
+		return clothingColors;
 	}
 
-	public void setSubColorCategory(SubColorCategory subColorCategory) {
-		this.subColorCategory = subColorCategory;
+	public void setClothingColors(List<ClothingColor> clothingColors) {
+		this.clothingColors = clothingColors;
 	}
 
-	public List<String> getColorHex() {
-		return colorHex;
+	public ColorCategory getDominantColor() {
+		return clothingColors.stream()
+				.max(java.util.Comparator.comparing(ClothingColor::getPercentage))
+				.map(ClothingColor::getColorCategory)
+				.orElse(null);
 	}
 
-	public void setColorHex(List<String> colorHex) {
-		this.colorHex = colorHex;
+	public String getClothingImage() {
+		return clothingImage;
 	}
 
-	public String getClothImage() {
-		return clothImage;
-	}
-
-	public void setClothImage(String clothImage) {
-		this.clothImage = clothImage;
+	public void setClothingImage(String clothingImage) {
+		this.clothingImage = clothingImage;
 	}
 }

@@ -125,18 +125,11 @@ class MatchingClothApp {
         } else {
             dayGroup.style.display = 'none';
             luckyTypesGroup.style.display = 'none';
-            // Reset all checkboxes to visible
             this.showAllLuckyTypes();
-        }
-
-        // Resend API if clothes are already selected
-        if (this.selectedClothes.top || this.selectedClothes.bottom || this.selectedClothes.jacket) {
-            this.fetchMatchingClothes();
         }
     }
 
     filterLuckyTypesByAstrologer(astrologerId) {
-        // Get unique lucky type IDs for this astrologer from allLuckyColorsData
         const astrologerLuckyTypes = new Set();
 
         if (typeof allLuckyColorsData !== 'undefined') {
@@ -153,11 +146,9 @@ class MatchingClothApp {
             const checkboxItem = checkbox.closest('.checkbox-item');
 
             if (astrologerLuckyTypes.has(luckyTypeId)) {
-                // Show this lucky type
                 checkboxItem.style.display = 'flex';
                 checkbox.disabled = false;
             } else {
-                // Hide this lucky type
                 checkboxItem.style.display = 'none';
                 checkbox.disabled = true;
                 checkbox.checked = false;
@@ -176,18 +167,9 @@ class MatchingClothApp {
 
     onDayChange(event) {
         const selectedDay = event.target.value;
-
-        // Resend API if clothes are already selected
-        if (this.selectedClothes.top || this.selectedClothes.bottom || this.selectedClothes.jacket) {
-            this.fetchMatchingClothes();
-        }
     }
 
     onLuckyTypeChange(event) {
-        const checkedTypes = Array.from(document.querySelectorAll('.lucky-type-checkbox:checked'))
-            .map(cb => cb.value);
-
-        // Resend API if clothes are already selected
         if (this.selectedClothes.top || this.selectedClothes.bottom || this.selectedClothes.jacket) {
             this.fetchMatchingClothes();
         }
@@ -452,10 +434,8 @@ class MatchingClothApp {
             clothImage: `${imageBaseUrl}${clothingItem.dataset.username}/${clothingItem.dataset.clothImage}`,
             clothTypeId: parseInt(clothingItem.dataset.typeId),
             clothTypeName: clothingItem.dataset.typeName,
-            subHex: clothingItem.dataset.subHex,
-            subGroup: clothingItem.dataset.subGroup,
-            mainHex: clothingItem.dataset.mainHex,
-            mainGroup: clothingItem.dataset.mainGroup
+            colorHex: clothingItem.dataset.colorHex,
+            colorName: clothingItem.dataset.colorName
         };
     }
 
@@ -613,10 +593,8 @@ class MatchingClothApp {
             clothImage: mainCloth.clothImage,
             clothTypeId: mainCloth.clothTypeId,
             clothTypeName: mainCloth.clothTypeName,
-            subHex: mainCloth.subHex,
-            subGroup: mainCloth.subGroup,
-            mainHex: mainCloth.mainHex,
-            mainGroup: mainCloth.mainGroup
+            colorHex: mainCloth.colorHex,
+            colorName: mainCloth.colorName
         };
 
         // Collect all clothing items for candidates
@@ -637,10 +615,8 @@ class MatchingClothApp {
                 clothImage: `${imageBaseUrl}${item.dataset.username}/${item.dataset.clothImage}`,
                 clothTypeId: parseInt(item.dataset.typeId),
                 clothTypeName: typeName,
-                subHex: item.dataset.subHex,
-                subGroup: item.dataset.subGroup,
-                mainHex: item.dataset.mainHex,
-                mainGroup: item.dataset.mainGroup
+                colorHex: item.dataset.colorHex,
+                colorName: item.dataset.colorName
             };
 
             if (typeName === 'เสื้อ') {
@@ -713,12 +689,10 @@ class MatchingClothApp {
     }
 
     handleMatchingResults(data) {
-        // Store results
         this.matchingResults.tops = data.tops_options || [];
         this.matchingResults.bottoms = data.pants_options || [];
         this.matchingResults.jackets = data.outer_options || [];
 
-        // Reset indices
         this.currentIndex.tops = 0;
         this.currentIndex.bottoms = 0;
         this.currentIndex.jackets = 0;
@@ -763,24 +737,27 @@ class MatchingClothApp {
         slot.classList.remove('filled');
 
         if (!results || results.length === 0) {
-            // No results found
-            slot.innerHTML = '<div class="no-results">ไม่มีผลลัพธ์ที่จับคู่ได้</div>';
+            const astrologerSelect = document.getElementById('astrologer-select');
+            const hasLuckyColors = astrologerSelect && astrologerSelect.value;
+            const checkedLuckyTypes = document.querySelectorAll('.lucky-type-checkbox:checked').length > 0;
+
+            let message = 'ไม่มีเสื้อผ้าที่เข้าเงื่อนไข';
+            if (hasLuckyColors && checkedLuckyTypes) {
+                message = 'ไม่มีเสื้อผ้าที่ตรงทั้งทฤษฎีสีและสีมงคล';
+            }
+
+            slot.innerHTML = `<div class="no-results">${message}</div>`;
             this.updateNavigationButtons(type, 0, 0);
             return;
         }
 
-        // Display current result
         const currentResult = results[index];
-        // Handle both response formats
         let imageSrc;
         if (currentResult.clothImage && currentResult.clothImage.startsWith('http')) {
-            // Full URL already provided
             imageSrc = currentResult.clothImage;
         } else if (currentResult.username && currentResult.clothImage) {
-            // Build URL from parts
             imageSrc = `${imageBaseUrl}${currentResult.username}/${currentResult.clothImage}`;
         } else {
-            // Fallback
             imageSrc = currentResult.clothImage || '';
         }
 
@@ -793,8 +770,6 @@ class MatchingClothApp {
             </div>
         `;
         slot.classList.add('filled');
-
-        // Update navigation buttons
         this.updateNavigationButtons(type, index + 1, results.length);
     }
 
@@ -810,15 +785,10 @@ class MatchingClothApp {
             return;
         }
 
-        // Show buttons and counter
         prevBtn.style.display = 'block';
         nextBtn.style.display = 'block';
         counter.style.display = 'block';
-
-        // Update counter text
         counter.textContent = `${current} / ${total}`;
-
-        // Enable/disable buttons
         prevBtn.disabled = current <= 1;
         nextBtn.disabled = current >= total;
     }

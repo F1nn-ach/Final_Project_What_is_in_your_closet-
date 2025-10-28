@@ -16,6 +16,38 @@
   <%@ include file="includes/header.jsp" %>
 
   <main>
+    <!-- Notice Messages -->
+    <c:if test="${not empty successMessage}">
+      <div class="notice notice-success">
+        <div class="notice-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 12l2 2 4-4"/>
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
+        </div>
+        <div class="notice-content">
+          <h4 class="notice-title">สำเร็จ!</h4>
+          <p class="notice-message">${successMessage}</p>
+        </div>
+      </div>
+    </c:if>
+
+    <c:if test="${not empty errorMessage}">
+      <div class="notice notice-error">
+        <div class="notice-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+          </svg>
+        </div>
+        <div class="notice-content">
+          <h4 class="notice-title">เกิดข้อผิดพลาด!</h4>
+          <p class="notice-message">${errorMessage}</p>
+        </div>
+      </div>
+    </c:if>
+
     <div class="login-card">
       <div class="card-header">
         <div class="card-logo">เข้าสู่ระบบ</div>
@@ -28,7 +60,7 @@
         </div>
       </c:if>
 
-      <form id="loginForm" action="${pageContext.request.contextPath}/login-check" method="post">
+      <form id="loginForm" action="${pageContext.request.contextPath}/user/login" method="post">
         <div class="form-group">
           <label for="username">ชื่อผู้ใช้ หรือ อีเมล</label>
           <input type="text" id="username" name="username" placeholder="กรอกอีเมลหรือชื่อผู้ใช้ของคุณ">
@@ -49,7 +81,6 @@
         <button type="submit" class="btn btn-primary">เข้าสู่ระบบ</button>
 
         <div class="auth-links">
-          <a href="#" class="auth-link">ลืมรหัสผ่าน?</a>
           <a href="${pageContext.request.contextPath}/registration" class="auth-link">สมัครสมาชิกใหม่</a>
         </div>
       </form>

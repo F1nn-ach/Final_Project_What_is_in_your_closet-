@@ -50,7 +50,7 @@
         <!-- Page header with title and back button -->
         <div class="page-header">
             <h1 class="page-title">เพิ่มเสื้อผ้าใหม่</h1>
-            <a href="${pageContext.request.contextPath}/list-item" class="back-link">
+            <a href="${pageContext.request.contextPath}/cloth/list-item" class="back-link">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M19 12H5M5 12L12 19M5 12L12 5"></path>
             </svg>
@@ -60,7 +60,7 @@
 
         <!-- Add clothes form -->
         <div class="form-card">
-            <form id="addClothForm" method="post" action="${pageContext.request.contextPath}/add-item">
+            <form id="addClothForm" method="post" action="${pageContext.request.contextPath}/cloth/add">
             <input type="hidden" id="imageFile" name="imageFile">
             <input type="hidden" id="classifiedColor" name="classifiedColor">
             <input type="hidden" id="username" name="username" value="${username}">
@@ -75,7 +75,7 @@
                         <line x1="12" y1="3" x2="12" y2="15"></line>
                     </svg>
                     </div>
-                    <div class="upload-text">คลิกเพื่ออัพโหลดรูปภาพ</div>
+                    <div class="upload-text">คลิกเพื่ออับโหลดรูปภาพ</div>
                     <div class="upload-format">รองรับไฟล์ JPG, PNG (ไม่เกิน 5MB)</div>
                 </div>
                 <img src="${pageContext.request.contextPath}/${clothImage}" alt="Image Preview" id="preview-image" style="display: ${not empty clothImage ? 'block' : 'none'}">
@@ -94,7 +94,7 @@
                     <div class="processing-content">
                         <div class="error-icon">✕</div>
                         <h4 class="processing-title">เกิดข้อผิดพลาด</h4>
-                        <p class="processing-description">ไม่สามารถอัพโหลดรูปภาพได้ กรุณาลองใหม่อีกครั้ง</p>
+                        <p class="processing-description">ไม่สามารถอับโหลดรูปภาพได้ กรุณาลองใหม่อีกครั้ง</p>
                     </div>
                 </div>
             </div>
@@ -102,11 +102,11 @@
             <!-- Removed duplicate processedImageUrl input -->
 
             <div class="form-group">
-                <label for="clothType">ประเภทเสื้อผ้า</label>
-                <select id="clothType" name="clothType" required>
+                <label for="clothingType">ประเภทเสื้อผ้า</label>
+                <select id="clothingType" name="clothingType" required>
                     <option value="" disabled selected>เลือกประเภทเสื้อผ้า</option>
-                <c:forEach var="clothType" items="${clothTypes}">
-                                <option value="${clothType.clothTypeId}">${clothType.typeName}</option>
+                <c:forEach var="clothingType" items="${clothingTypes}">
+                                <option value="${clothingType.clothingTypeId}">${clothingType.clothingTypeName}</option>
                             </c:forEach>
                 </select>
             </div>

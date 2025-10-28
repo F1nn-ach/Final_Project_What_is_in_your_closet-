@@ -10,17 +10,6 @@
             <ul>
                 <c:choose>
                     <c:when test="${sessionScope.userType == 'admin'}">
-                        <li>
-                            <a href="/admin/dashboard" class="${currentPage == '/admin/dashboard' ? 'active' : ''}">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="3" width="7" height="7"></rect>
-                                    <rect x="14" y="3" width="7" height="7"></rect>
-                                    <rect x="3" y="14" width="7" height="7"></rect>
-                                    <rect x="14" y="14" width="7" height="7"></rect>
-                                </svg>
-                                Dashboard
-                            </a>
-                        </li>
                         <li class="user-dropdown">
                             <a href="#" class="user-dropdown-toggle">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -33,7 +22,7 @@
                                 </svg>
                             </a>
                             <div class="dropdown-menu">
-                                <a href="/logout" class="dropdown-item">
+                                <a href="/user/logout" class="dropdown-item">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                                         <polyline points="16 17 21 12 16 7"></polyline>
@@ -55,7 +44,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="/list-item" class="${currentPage.startsWith('/list-item') ? 'active' : ''}">
+                            <a href="/cloth/list" class="${currentPage.startsWith('/cloth/list') ? 'active' : ''}">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99-.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path>
                                 </svg>
@@ -63,7 +52,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="/matching-item" class="${currentPage.startsWith('/matching-item') ? 'active' : ''}">
+                            <a href="/api/matching/page" class="${currentPage.startsWith('/api/matching/page') ? 'active' : ''}">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <circle cx="13.5" cy="6.5" r="2.5"></circle>
                                     <circle cx="19" cy="17" r="2"></circle>
@@ -87,7 +76,7 @@
                                 </svg>
                             </a>
                             <div class="dropdown-menu">
-                                <a href="/logout" class="dropdown-item">
+                                <a href="/user/logout" class="dropdown-item">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                                         <polyline points="16 17 21 12 16 7"></polyline>

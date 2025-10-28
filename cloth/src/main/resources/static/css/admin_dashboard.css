@@ -73,25 +73,135 @@ main {
   transform: translateY(-2px);
 }
 
-.new-astrologer-input {
-  padding: 10px 15px;
-  border: 2px solid #1976d2;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  font-family: "Prompt", sans-serif;
+/* New Astrologer Container */
+.new-astrologer-container {
   display: none;
-  min-width: 220px;
-  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 15px;
+  background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+  border-radius: 12px;
+  border: 2px solid #1976d2;
+  box-shadow: 0 4px 15px rgba(25, 118, 210, 0.15);
+  animation: slideDown 0.3s ease-out;
 }
 
-.new-astrologer-input.show {
-  display: block;
+.new-astrologer-container.show {
+  display: flex;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.new-astrologer-input {
+  padding: 12px 18px;
+  border: 2px solid #1976d2;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: "Prompt", sans-serif;
+  flex: 1;
+  min-width: 220px;
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+  background: white;
+  font-weight: 500;
 }
 
 .new-astrologer-input:focus {
-  border-color: #1976d2;
-  box-shadow: 0 0 0 4px rgba(25, 118, 210, 0.1);
+  border-color: #0d47a1;
+  box-shadow: 0 0 0 4px rgba(25, 118, 210, 0.2);
   outline: none;
+  transform: translateY(-1px);
+}
+
+.new-astrologer-input::placeholder {
+  color: #90caf9;
+  font-weight: 400;
+}
+
+/* Add Astrologer Button */
+.btn-add-astrologer {
+  background: linear-gradient(135deg, #1976d2, #0d47a1);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: "Prompt", sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+  box-shadow: 0 8px 20px rgba(25, 118, 210, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-add-astrologer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.btn-add-astrologer:hover::before {
+  left: 100%;
+}
+
+.btn-add-astrologer:hover {
+  background: linear-gradient(135deg, #0d47a1, #01579b);
+  box-shadow: 0 12px 30px rgba(25, 118, 210, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-add-astrologer:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 15px rgba(25, 118, 210, 0.3);
+}
+
+.btn-add-astrologer:disabled {
+  background: #e0e0e0;
+  color: #9e9e9e;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-add-astrologer:disabled::before {
+  display: none;
+}
+
+.btn-add-astrologer .btn-icon {
+  font-size: 1.1rem;
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.2) rotate(180deg);
+  }
+}
+
+.btn-add-astrologer .btn-text {
+  font-weight: 700;
+  letter-spacing: 0.3px;
 }
 
 /* Lucky Type Selection */
@@ -147,11 +257,6 @@ main {
 
 .type-checkbox-item.checked {
   border-color: var(--dark-color);
-  background: white;
-}
-
-.type-checkbox-item.kalakinee {
-  border-color: #f44336;
   background: white;
 }
 
@@ -714,4 +819,48 @@ main {
 .empty-state p {
   margin: 0;
   font-size: 0.95rem;
+}
+
+/* Read-Only Mode Styles */
+.read-only-banner {
+  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+  color: #856404;
+  padding: 15px 20px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: 2px solid #ffc107;
+  box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.matrix-cell.read-only {
+  cursor: default !important;
+  opacity: 0.85;
+}
+
+.matrix-cell.read-only:hover {
+  background: #f8f9fa !important;
+  border-color: var(--border-color) !important;
+  transform: none !important;
+}
+
+.matrix-cell.read-only.kalakinee-cell:hover {
+  border-color: #f44336 !important;
+}
+
+.matrix-cell.read-only.empty::before {
+  content: "📖 ดูอย่างเดียว";
+  color: var(--text-light);
+  font-size: 0.8rem;
+  opacity: 0;
+}
+
+.matrix-cell.read-only.empty:hover::before {
+  opacity: 0.6;
 }

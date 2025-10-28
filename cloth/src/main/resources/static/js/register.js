@@ -12,7 +12,7 @@ function debounce(fn, delay) {
 
 async function checkExists(type, value) {
     try {
-        let res = await fetch(`/check-${type}?${type}=${encodeURIComponent(value)}`);
+        let res = await fetch(`/user/check-${type}?${type}=${encodeURIComponent(value)}`);
         return await res.json();
     } catch (err) {
         console.error(err);

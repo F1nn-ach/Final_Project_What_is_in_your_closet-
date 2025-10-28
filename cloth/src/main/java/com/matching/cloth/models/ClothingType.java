@@ -14,43 +14,43 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.FetchType;
 
 @Entity
-@Table(name = "clothType")
+@Table(name = "clothingType")
 public class ClothingType {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int clothTypeId;
-    
+    private int clothingTypeId;
+
     @Column(name = "typeName", nullable = false, length = 50)
-    private String typeName;
+    private String clothingTypeName;
 
-    @OneToMany(mappedBy = "clothType", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "clothingType", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Clothing> clothes = new ArrayList<>();
-    
-	public ClothingType() {
-		super();
-	}
 
-	public ClothingType(int clothTypeId, String typeName, List<Clothing> clothes) {
-		super();
-		this.clothTypeId = clothTypeId;
-		this.typeName = typeName;
-		this.clothes = clothes;
-	}
-
-    public int getClothTypeId() {
-        return clothTypeId;
+    public ClothingType() {
+        super();
     }
 
-    public void setClothTypeId(int clothTypeId) {
-        this.clothTypeId = clothTypeId;
+    public ClothingType(int clothingTypeId, String clothingTypeName, List<Clothing> clothes) {
+        super();
+        this.clothingTypeId = clothingTypeId;
+        this.clothingTypeName = clothingTypeName;
+        this.clothes = clothes;
     }
 
-    public String getTypeName() {
-        return typeName;
+    public int getClothingTypeId() {
+        return clothingTypeId;
     }
 
-    public void setTypeName(String typeName) {
-        this.typeName = typeName;
+    public void setClothingTypeId(int clothingTypeId) {
+        this.clothingTypeId = clothingTypeId;
+    }
+
+    public String getClothingTypeName() {
+        return clothingTypeName;
+    }
+
+    public void setClothingTypeName(String clothingTypeName) {
+        this.clothingTypeName = clothingTypeName;
     }
 
     public List<Clothing> getClothes() {

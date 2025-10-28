@@ -119,8 +119,8 @@
                         <div class="clothing-filters">
                             <div class="cloth-type-buttons">
                                 <button class="cloth-type-btn active" data-type="all">ทั้งหมด</button>
-                                <c:forEach var="clothType" items="${clothTypes}">
-                                    <button class="cloth-type-btn" data-type-id="${clothType.clothTypeId}">${clothType.typeName}</button>
+                                <c:forEach var="clothingType" items="${clothingTypes}">
+                                    <button class="cloth-type-btn" data-type-id="${clothingType.clothingTypeId}">${clothingType.clothingTypeName}</button>
                                 </c:forEach>
                             </div>
                         </div>
@@ -131,21 +131,18 @@
                                     <c:when test="${not empty clothes}">
                                         <c:forEach var="cloth" items="${clothes}">
                                             <div class="clothing-item"
-                                                 data-cloth-id="${cloth.clothId}"
-                                                 data-type-id="${cloth.clothType.clothTypeId}"
-                                                 data-type-name="${cloth.clothType.typeName}"
-                                                 data-cloth-image="${cloth.clothImage}"
+                                                 data-cloth-id="${cloth.clothingId}"
+                                                 data-type-id="${cloth.clothingType.clothingTypeId}"
+                                                 data-type-name="${cloth.clothingType.clothingTypeName}"
+                                                 data-cloth-image="${cloth.clothingImage}"
                                                  data-username="${cloth.user.username}"
-                                                 data-sub-hex="${cloth.subColorCategory.subHex}"
-                                                 data-sub-group="${cloth.subColorCategory.subColorName}"
-                                                 data-main-hex="${cloth.subColorCategory.mainColorCategory.mainHex}"
-                                                 data-main-group="${cloth.subColorCategory.mainColorCategory.mainColorName}">
+                                                 data-color-hex="${cloth.dominantColor != null ? cloth.dominantColor.colorCategoryHex : '#000000'}"
+                                                 data-color-name="${cloth.dominantColor != null ? cloth.dominantColor.colorCategoryName : ''}">
                                                 <div class="clothing-image">
-                                                    <img src="${imageBaseUrl}${cloth.user.username}/${cloth.clothImage}" alt="${cloth.clothType.typeName}" loading="lazy">
+                                                    <img src="${imageBaseUrl}${cloth.user.username}/${cloth.clothingImage}" alt="${cloth.clothingType.clothingTypeName}" loading="lazy">
                                                 </div>
                                                 <div class="clothing-info">
-                                                    <h4>${cloth.clothType.typeName}</h4>
-                                                    <p>รหัส: ${cloth.clothId}</p>
+                                                    <h4>${cloth.clothingType.clothingTypeName}</h4>
                                                 </div>
                                             </div>
                                         </c:forEach>
@@ -155,7 +152,7 @@
                                             <div class="empty-icon">👔</div>
                                             <h3>ยังไม่มีเสื้อผ้าในตู้ของคุณ</h3>
                                             <p>เริ่มต้นเพิ่มเสื้อผ้าในตู้ของคุณเพื่อค้นหาสีที่เหมาะกับคุณ</p>
-                                            <a href="${pageContext.request.contextPath}/cloth/add-cloth" class="btn btn-primary">เพิ่มเสื้อผ้า</a>
+                                            <a href="${pageContext.request.contextPath}/add-item" class="btn btn-primary">เพิ่มเสื้อผ้า</a>
                                         </div>
                                     </c:otherwise>
                                 </c:choose>
